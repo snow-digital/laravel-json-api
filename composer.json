@@ -1,0 +1,46 @@
+{
+    "name": "snow-digital/laravel-json-api",
+    "homepage": "https://github.com/snow-digital/laravel-json-api",
+    "license": "MIT",
+    "support": {
+        "issues": "https://github.com/snow-digital/laravel-json-api/issues",
+        "source": "https://github.com/snow-digital/laravel-json-api"
+    },
+    "authors": [
+        {
+            "name": "Frédéric Vandebeuque",
+            "email": "fred.vdb@newebtime.com",
+            "homepage": "https://snowdigital.co.th",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "spatie/laravel-package-tools": "^1.11",
+        "spatie/laravel-query-builder": "^6.0"
+    },
+    "require-dev": {
+        "nunomaduro/larastan": "^2.0",
+        "orchestra/testbench": "^7.0|^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SnowDigital\\LaravelJsonApi\\": "src/"
+        }
+    },
+    "scripts": {
+        "analyse": "vendor/bin/phpstan analyse --ansi --memory-limit=2G"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SnowDigital\\LaravelJsonApi\\JsonApiServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
