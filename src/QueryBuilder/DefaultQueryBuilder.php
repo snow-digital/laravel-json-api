@@ -1,6 +1,6 @@
 <?php
 
-namespace SnowDigital\JsonApi;
+namespace SnowDigital\JsonApi\QueryBuilder;
 
 use Illuminate\Database\Eloquent\Model;
 use Spatie\QueryBuilder\AllowedFilter;

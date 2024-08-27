@@ -25,6 +25,11 @@ class JsonApi
         self::$resources[$key] = $resource;
     }
 
+    public static function keys(): array
+    {
+        return array_keys(JsonApi::$resources);
+    }
+
     public static function key(string $resource): string|int|false
     {
         return array_search($resource, JsonApi::$resources);
