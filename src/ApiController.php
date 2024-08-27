@@ -31,7 +31,7 @@ class ApiController
         abort_if($this->only && ! in_array('browse', $this->only), 404);
 
         /** @var Model|DefaultQueryBuilder $resource */
-        $resource = new $this->resource;
+        $resource = new $this->resource();
 
         if ($resource instanceof Model) {
             $paginator = (new DefaultQueryBuilder($resource))
@@ -48,7 +48,7 @@ class ApiController
         abort_if($this->only && ! in_array('show', $this->only), 404);
 
         /** @var Model|DefaultQueryBuilder $resource */
-        $resource = new $this->resource;
+        $resource = new $this->resource();
 
         if ($resource instanceof Model) {
             $resource = new DefaultQueryBuilder($resource);
