@@ -12,18 +12,23 @@ class JsonApiController
 {
     protected string $resource;
 
+    protected ?array $only;
+
     public function __construct(Route $route)
     {
         abort_if(! $resourceName = $route->parameter('resource'), 404);
         abort_if(! $resource = JsonApi::resource($resourceName), 500);
 
-        $this->resource = $resource;
+        $this->resource = is_array($resource) ? $resource[0] : $resource;
+        $this->only = is_array($resource) ? $resource[1] : null;
 
         $route->forgetParameter('resource');
     }
 
     public function index(): JsonApiCollection
     {
+        abort_if($this->only && ! in_array('browse', $this->only), 404);
+
         /** @var Model|DefaultQueryBuilder $resource */
         $resource = new $this->resource;
 
@@ -39,6 +44,8 @@ class JsonApiController
 
     public function show(string $id): JsonApiResource
     {
+        abort_if($this->only && ! in_array('show', $this->only), 404);
+
         /** @var Model|DefaultQueryBuilder $resource */
         $resource = new $this->resource;
 

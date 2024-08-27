@@ -10,6 +10,14 @@ JsonApi::setResources([
 ]);
 ```
 
+Limiting routes
+
+```php
+use SnowDigital\LaravelJsonApi\JsonApi;
+
+JsonApi::setResource('users', [\App\Models\User::class, ['browse', 'show']]);
+```
+
 Usage with custom QueryBuilder
 
 ```php

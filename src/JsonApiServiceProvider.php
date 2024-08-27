@@ -10,6 +10,8 @@ class JsonApiServiceProvider extends PackageServiceProvider
     public function configurePackage(Package $package): void
     {
         $package
-            ->name('laravel-json-api');
+            ->name('laravel-json-api')
+            ->hasConfigFile()
+            ->hasRoute('api');
     }
 }
