@@ -1,6 +1,6 @@
 <?php
 
-namespace SnowDigital\LaravelJsonApi;
+namespace SnowDigital\JsonApi;
 
 use Illuminate\Support\Arr;
 

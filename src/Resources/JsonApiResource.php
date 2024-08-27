@@ -1,6 +1,6 @@
 <?php
 
-namespace SnowDigital\LaravelJsonApi\Resources;
+namespace SnowDigital\JsonApi\Resources;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Resources\Json\JsonResource;

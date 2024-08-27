@@ -1,11 +1,11 @@
 <?php
 
-namespace SnowDigital\LaravelJsonApi;
+namespace SnowDigital\JsonApi;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Routing\Route;
-use SnowDigital\LaravelJsonApi\Resources\JsonApiCollection;
-use SnowDigital\LaravelJsonApi\Resources\JsonApiResource;
+use SnowDigital\JsonApi\Resources\JsonApiCollection;
+use SnowDigital\JsonApi\Resources\JsonApiResource;
 
 class JsonApiController
 {

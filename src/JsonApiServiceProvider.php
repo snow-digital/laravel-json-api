@@ -1,6 +1,6 @@
 <?php
 
-namespace SnowDigital\LaravelJsonApi;
+namespace SnowDigital\JsonApi;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
