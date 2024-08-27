@@ -2,6 +2,8 @@
 
 namespace SnowDigital\JsonApi;
 
+use Illuminate\Support\Facades\Config;
+use SnowDigital\JsonApi\Facades\JsonApi;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -17,5 +19,15 @@ class JsonApiServiceProvider extends PackageServiceProvider
             ->name('laravel-json-api')
             ->hasConfigFile()
             ->hasRoute('api');
+    }
+
+    public function packageRegistered(): void
+    {
+        if (Config::get('json-api.auto_register.enabled')) {
+            JsonApi::discoverResources(
+                Config::get('json-api.auto_register.path'),
+                Config::get('json-api.auto_register.namespace'),
+            );
+        }
     }
 }
