@@ -7,6 +7,10 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
 
 class JsonApiServiceProvider extends PackageServiceProvider
 {
+    public array $singletons = [
+        ApiRegister::class => ApiRegister::class,
+    ];
+
     public function configurePackage(Package $package): void
     {
         $package

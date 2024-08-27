@@ -10,14 +10,14 @@ if (Config::get('json-api.auto_routing.enabled')) {
         ->prefix($prefix)
         ->group(function () {
             if (Config::get('json-api.auto_routing.routes.index')) {
-                Route::get('/', [SnowDigital\JsonApi\JsonApiController::class, 'index'])
+                Route::get('/', [SnowDigital\JsonApi\ApiController::class, 'index'])
                     ->name('browse');
             }
 
             if (Config::get('json-api.auto_routing.routes.show')) {
-                Route::get('/{id}', [SnowDigital\JsonApi\JsonApiController::class, 'show'])
+                Route::get('/{id}', [SnowDigital\JsonApi\ApiController::class, 'show'])
                     ->name('show');
             }
         })
-        ->whereIn('resource', SnowDigital\JsonApi\JsonApi::keys());
+        ->whereIn('resource', SnowDigital\JsonApi\Facades\JsonApi::keys());
 }

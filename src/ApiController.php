@@ -4,11 +4,12 @@ namespace SnowDigital\JsonApi;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Routing\Route;
+use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\QueryBuilder\DefaultQueryBuilder;
 use SnowDigital\JsonApi\Resources\JsonApiCollection;
 use SnowDigital\JsonApi\Resources\JsonApiResource;
 
-class JsonApiController
+class ApiController
 {
     protected string $resource;
 
