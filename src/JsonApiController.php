@@ -47,8 +47,7 @@ class JsonApiController
         }
 
         $entry = $resource
-            ->findOrFail($id)
-            ->append($resource::$appendsItem);
+            ->findOrFail($id);
 
         return new JsonApiResource($entry);
     }
