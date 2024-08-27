@@ -3,4 +3,4 @@ parameters:
 		-
 			message: "#^Call to an undefined method SnowDigital\\\\JsonApi\\\\QueryBuilder\\\\DefaultQueryBuilder\\:\\:jsonPaginate\\(\\)\\.$#"
 			count: 2
-			path: src/JsonApiController.php
+			path: src/ApiController.php
