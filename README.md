@@ -1,7 +1,7 @@
 Laravel JSON:API
 ===
 
-This package allow to quickly prototype an [JSON:API](https://jsonapi.org) API, automatizing most of it from Eloquent or QueryBuilder.
+This package allows to quickly prototype a [JSON:API](https://jsonapi.org) API, automatizing most of it from Eloquent or QueryBuilder.
 
 It's based on top of Spatie [Query Builder](https://github.com/spatie/laravel-query-builder) and [JSON Api Paginate](https://github.com/spatie/laravel-json-api-paginate), allowing to easily switch when you need more flexibility without having to rework everything.
 

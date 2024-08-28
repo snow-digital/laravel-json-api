@@ -20,6 +20,10 @@ return [
         'routes' => [
             'index' => true,
             'show' => true,
+            'post' => true,
+            'patch' => true,
+            'delete' => true,
+            'restore' => false,
         ],
     ],
 

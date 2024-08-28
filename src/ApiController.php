@@ -3,11 +3,14 @@
 namespace SnowDigital\JsonApi;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\QueryBuilder\DefaultQueryBuilder;
 use SnowDigital\JsonApi\Resources\JsonApiCollection;
 use SnowDigital\JsonApi\Resources\JsonApiResource;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class ApiController
 {
@@ -30,7 +33,7 @@ class ApiController
     {
         abort_if($this->only && ! in_array('browse', $this->only), 404);
 
-        /** @var Model|DefaultQueryBuilder $resource */
+        /** @var Model|QueryBuilder $resource */
         $resource = new $this->resource();
 
         if ($resource instanceof Model) {
@@ -47,7 +50,7 @@ class ApiController
     {
         abort_if($this->only && ! in_array('show', $this->only), 404);
 
-        /** @var Model|DefaultQueryBuilder $resource */
+        /** @var Model|QueryBuilder $resource */
         $resource = new $this->resource();
 
         if ($resource instanceof Model) {
@@ -56,6 +59,85 @@ class ApiController
 
         $entry = $resource
             ->findOrFail($id);
+
+        return new JsonApiResource($entry);
+    }
+
+    public function post(Request $request): JsonApiResource
+    {
+        abort_if($this->only && ! in_array('post', $this->only), 404);
+
+        return $this->upsert($request);
+    }
+
+    public function patch(Request $request, string $id): JsonApiResource
+    {
+        abort_if($this->only && ! in_array('patch', $this->only), 404);
+
+        return $this->upsert($request, $id);
+    }
+
+    public function delete(string $id): Response
+    {
+        abort_if($this->only && ! in_array('delete', $this->only), 404);
+
+        /** @var Model|QueryBuilder $resource */
+        $resource = new $this->resource();
+
+        if ($resource instanceof QueryBuilder) {
+            $resource = $resource->getSubject()->getModel();
+        }
+
+        $entry = $resource->findOrFail($id);
+
+        if (! $entry->delete()) {
+            abort(400, 'This entry cannot be deleted');
+        }
+
+        return response(null, 204);
+    }
+
+    public function restore(string $id): Response
+    {
+        abort_if($this->only && ! in_array('restore', $this->only), 404);
+
+        /** @var Model|QueryBuilder $resource */
+        $resource = new $this->resource();
+
+        if ($resource instanceof QueryBuilder) {
+            $resource = $resource->getSubject()->getModel();
+        }
+
+        if (! method_exists($resource, 'restore')) {
+            abort(500);
+        }
+
+        $entry = $resource->withTrashed()->findOrFail($id);
+
+        if (! $entry->restore()) {
+            abort(400, 'This entry cannot be restore');
+        }
+
+        return response(null, 204);
+    }
+
+    protected function upsert(Request $request, ?string $id = null): JsonApiResource
+    {
+        /** @var Model|DefaultQueryBuilder $resource */
+        $resource = new $this->resource();
+
+        if ($resource instanceof QueryBuilder) {
+            $resource = $resource->getSubject()->getModel();
+        }
+
+        /** @var Model $entry */
+        $entry = $id
+            ? $resource->findOrFail($id)
+            : new $resource;
+
+        $entry
+            ->fill($request->all())
+            ->save();
 
         return new JsonApiResource($entry);
     }
