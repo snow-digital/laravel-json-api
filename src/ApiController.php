@@ -43,6 +43,10 @@ class ApiController
             $paginator = $resource->jsonPaginate();
         }
 
+        if ($append = request('append')) {
+            $paginator->append(explode(',', $append));
+        }
+
         return new JsonApiCollection($paginator);
     }
 
@@ -60,7 +64,12 @@ class ApiController
         $entry = $resource
             ->findOrFail($id);
 
-        return new JsonApiResource($entry);
+        if ($append = request('append')) {
+            $entry->append(explode(',', $append));
+        }
+
+        return (new JsonApiResource($entry))
+            ->additional(['data' => ['bbb' => 'aaa']]);
     }
 
     public function post(Request $request): JsonApiResource
