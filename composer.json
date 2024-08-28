@@ -30,7 +30,8 @@
         }
     },
     "scripts": {
-        "analyse": "vendor/bin/phpstan analyse --ansi --memory-limit=2G"
+        "analyse": "vendor/bin/phpstan analyse --ansi --memory-limit=2G",
+        "baseline": "vendor/bin/phpstan analyse --generate-baseline --memory-limit=2G"
     },
     "config": {
         "sort-packages": true
