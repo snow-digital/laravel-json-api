@@ -19,4 +19,9 @@ class JsonApiResource extends JsonResource
             'attributes' => $this->resource->toArray(),
         ];
     }
+
+    protected static function newCollection($resource): JsonApiCollection
+    {
+        return new JsonApiCollection($resource);
+    }
 }
