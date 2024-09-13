@@ -68,8 +68,7 @@ class ApiController
             $entry->append(explode(',', $append));
         }
 
-        return (new JsonApiResource($entry))
-            ->additional(['data' => ['bbb' => 'aaa']]);
+        return new JsonApiResource($entry);
     }
 
     public function post(Request $request): JsonApiResource
