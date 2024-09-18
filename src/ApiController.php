@@ -37,7 +37,7 @@ class ApiController
         $resource = new $this->resource();
 
         if ($resource instanceof Model) {
-            $paginator = (new DefaultQueryBuilder($resource))
+            $paginator = $this->makeQueryBuilder($resource)
                 ->jsonPaginate();
         } else {
             $paginator = $resource->jsonPaginate();
@@ -58,7 +58,7 @@ class ApiController
         $resource = new $this->resource();
 
         if ($resource instanceof Model) {
-            $resource = new DefaultQueryBuilder($resource);
+            $resource = $this->makeQueryBuilder($resource);
         }
 
         $entry = $resource
@@ -148,5 +148,10 @@ class ApiController
             ->save();
 
         return new JsonApiResource($entry);
+    }
+
+    protected function makeQueryBuilder(Model $resource): DefaultQueryBuilder
+    {
+        return new DefaultQueryBuilder($resource);
     }
 }
