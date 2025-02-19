@@ -1,6 +1,6 @@
 <?php
 
-namespace Infrastructure\Docs;
+namespace SnowDigital\JsonApi\Docs;
 
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Support\Generator\Operation;
