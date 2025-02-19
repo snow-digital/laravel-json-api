@@ -5,6 +5,7 @@ namespace SnowDigital\JsonApi;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Route;
 use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\QueryBuilder\DefaultQueryBuilder;
@@ -29,6 +30,9 @@ class ApiController
         $route->forgetParameter('resource');
     }
 
+    /**
+     * @return LengthAwarePaginator<JsonApiResource>
+     */
     public function index(): JsonApiCollection
     {
         abort_if($this->only && ! in_array('browse', $this->only), 404);
