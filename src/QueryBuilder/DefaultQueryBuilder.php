@@ -58,14 +58,21 @@ class DefaultQueryBuilder extends QueryBuilder
             return static::$tableColumns[$model::class];
         }
 
-        $sql = 'select column_name as `column_name`, data_type as `data_type` from information_schema.columns where table_schema = ? and table_name = ?';
         $table = $model->getConnection()->getTablePrefix() . $model->getTable();
 
-        $columns = collect($model->getConnection()
-            ->selectFromWriteConnection(
-                $sql,
-                [$model->getConnection()->getDatabaseName(), $table]
-            ));
+        if ($model->getConnection()->getDriverName() === 'sqlite') {
+            $sql = "pragma table_info($table)";
+
+            $columns = collect($model->getConnection()->raw($sql));
+        } else {
+            $sql = 'select column_name as `name`, data_type as `type` from information_schema.columns where table_schema = ? and table_name = ?';
+
+            $columns = collect($model->getConnection()
+                ->selectFromWriteConnection(
+                    $sql,
+                    [$model->getConnection()->getDatabaseName(), $table]
+                ));
+        }
 
         if (! $columns->count()) {
             return static::$tableColumns[$model::class] = [];
