@@ -79,8 +79,8 @@ class DefaultQueryBuilder extends QueryBuilder
         }
 
         $columns = $columns
-            ->whereNotIn('column_name', $model->getHidden())
-            ->pluck('data_type', 'column_name')
+            ->whereNotIn('name', $model->getHidden())
+            ->pluck('type', 'name')
             ->toArray();
 
         return static::$tableColumns[$model::class] = $columns;
