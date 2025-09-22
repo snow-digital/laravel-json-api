@@ -195,30 +195,33 @@ class QueryBuilderToSchema extends OperationExtension
         Type $fieldsType = new ObjectType(),
         Type $includeType = null,
     ): void {
+        $paginationType = (new ObjectType())->addProperty('number', new IntegerType())->addProperty('size', new IntegerType())
+            ->examples(['page[number]=1', 'page[size]=50']);
+
         $operation
             ->description('Browse resources using JSON:API. `filter`, `sort`, and `fields` can use any available `attribute`.')
             ->addParameters([
                 // @todo: It should be `style`: deepObject, `explode`: true, but it crash
                 // @see: https://spec.openapis.org/oas/latest.html#styleValues
                 Parameter::make('filter', 'query')
-                    ->setSchema(Schema::fromType($filterType))
+                    ->setSchema(Schema::fromType($filterType->examples(['filter[id]=1,2', 'filter[data]=key.value'])))
                     ->description('The filter query parameters can be used to add where clauses to your query. You can specify multiple matching filter values by passing a comma separated list of values.')
-                    ->example(['id' => '1,2']),
+                    ->example(['filter[id]' => '1,2']),
                 // @todo: It should be `explode`: false
                 Parameter::make('sort', 'query')
-                    ->setSchema(Schema::fromType($sortType))
+                    ->setSchema(Schema::fromType($sortType->examples(['sort=-id,sort_order'])))
                     ->description('The sort query parameter is used to determine by which property the results collection will be ordered. Sorting is ascending by default and can be reversed by adding a hyphen (-) to the start of the property name.')
                     ->example(['-id', 'sort_order']),
                 // @todo: It should be `style`: deepObject, `explode`: true, but it crash
                 Parameter::make('fields', 'query')
-                    ->setSchema(Schema::fromType($fieldsType))
+                    ->setSchema(Schema::fromType($fieldsType->examples(['fields[prodducts]=id,name'])))
                     ->description('Sometimes you\'ll want to fetch only a couple fields to reduce the overall size of your SQL query. This can be done by using the fields request query parameter.')
-                    ->example(['products' => 'id,name']),
+                    ->example(['fields[prodducts]' => 'id,name']),
                 // @todo: It should be `style`: deepObject, `explode`: true, but it crash
                 Parameter::make('page', 'query')
-                    ->setSchema(Schema::fromType((new ObjectType())->addProperty('number', new IntegerType())->addProperty('size', new IntegerType())))
+                    ->setSchema(Schema::fromType($paginationType))
                     ->description('Allow to manage the pagination.')
-                    ->example(['number' => 1, 'size' => 20]),
+                    ->example(['page[number]' => 1, 'page[size]' => 20]),
             ]);
 
         if ($includeType) {
@@ -226,7 +229,7 @@ class QueryBuilderToSchema extends OperationExtension
                 ->addParameters([
                     // @todo: It should be `explode`: false
                     Parameter::make('include', 'query')
-                        ->setSchema(Schema::fromType($includeType))
+                        ->setSchema(Schema::fromType($includeType->examples(['include=products'])))
                         ->description('The include query parameter will load any relation or relation count on the resulting models. You can load multiple relationships by separating them with a comma.')
                         ->example(['products']),
                 ]);
