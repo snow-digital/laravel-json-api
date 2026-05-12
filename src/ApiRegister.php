@@ -16,6 +16,11 @@ class ApiRegister
         return Arr::get(ApiRegister::$resources, $key);
     }
 
+    public function events(): ApiEvents
+    {
+        return app(ApiEvents::class);
+    }
+
     public function discoverResources(string $directory, string $namespace): static
     {
         if (blank($directory) || blank($namespace)) {

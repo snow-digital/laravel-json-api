@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Route;
+use SnowDigital\JsonApi\Events\AfterIndex;
 use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\QueryBuilder\DefaultQueryBuilder;
 use SnowDigital\JsonApi\Resources\JsonApiCollection;
@@ -17,6 +18,8 @@ class ApiController
 {
     protected string $resource;
 
+    protected string $resourceName;
+
     protected ?array $only;
 
     public function __construct(Route $route)
@@ -24,6 +27,7 @@ class ApiController
         abort_if(! $resourceName = $route->parameter('resource'), 404);
         abort_if(! $resource = JsonApi::resource($resourceName), 500);
 
+        $this->resourceName = $resourceName;
         $this->resource = is_array($resource) ? $resource[0] : $resource;
         $this->only = is_array($resource) ? $resource[1] : null;
 
@@ -51,7 +55,11 @@ class ApiController
             $paginator->append(explode(',', $append));
         }
 
-        return new JsonApiCollection($paginator);
+        $collection = new JsonApiCollection($paginator);
+
+        event(new AfterIndex($this->resourceName, $collection));
+
+        return $collection;
     }
 
     public function show(string $id): JsonApiResource

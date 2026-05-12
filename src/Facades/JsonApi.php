@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static mixed resource(string $key)
+ * @method static \SnowDigital\JsonApi\ApiEvents events()
  * @method static \SnowDigital\JsonApi\ApiRegister discoverResources(string $directory, string $namespace)
  * @method static \SnowDigital\JsonApi\ApiRegister setResources(array $resources)
  * @method static \SnowDigital\JsonApi\ApiRegister setResource(string $key, string $resource)
