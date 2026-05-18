@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\Enums\FilterOperator;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class DefaultQueryBuilder extends QueryBuilder
@@ -42,6 +43,7 @@ class DefaultQueryBuilder extends QueryBuilder
         foreach (static::getTableColumns() as $column => $type) {
             $filters[$column] = match ($type) {
                 'tinyint', 'smallint', 'int', 'bigint' => AllowedFilter::exact($column),
+                'double' => AllowedFilter::operator($column, FilterOperator::DYNAMIC),
                 default => AllowedFilter::partial($column),
             };
         }
