@@ -58,6 +58,10 @@ class DefaultQueryBuilder extends QueryBuilder
             return static::$tableColumns[$model::class];
         }
 
+        if ($model->getVisible()) {
+            return static::$tableColumns[$model::class] = $model->getVisible();
+        }
+
         $table = $model->getConnection()->getTablePrefix() . $model->getTable();
 
         if ($model->getConnection()->getDriverName() === 'sqlite') {
