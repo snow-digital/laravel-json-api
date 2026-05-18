@@ -36,7 +36,7 @@ class DefaultQueryBuilder extends QueryBuilder
         $filters = [];
 
         foreach (static::getTableColumns() as $column => $type) {
-            $filters[$type] = match ($type) {
+            $filters[$column] = match ($type) {
                 'tinyint', 'smallint', 'int', 'bigint' => AllowedFilter::exact($column),
                 default => AllowedFilter::partial($column),
             };
