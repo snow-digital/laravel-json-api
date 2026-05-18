@@ -94,4 +94,9 @@ class ApiRegister
     {
         return array_keys(static::$resources);
     }
+
+    public function key(string $resource): string|int|false
+    {
+        return array_search($resource, static::$resources);
+    }
 }
