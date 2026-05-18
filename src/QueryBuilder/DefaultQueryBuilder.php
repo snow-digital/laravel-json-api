@@ -3,12 +3,16 @@
 namespace SnowDigital\JsonApi\QueryBuilder;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class DefaultQueryBuilder extends QueryBuilder
 {
     protected static array $tableColumns = [];
+
+    protected static array $relationshipIncludes = [];
 
     public function __construct(public Model $resource)
     {
@@ -47,7 +51,41 @@ class DefaultQueryBuilder extends QueryBuilder
 
     public function getIncludes(): array
     {
-        return [];
+        return $this->discoverRelationships();
+    }
+
+    protected function discoverRelationships(): array
+    {
+        $modelClass = get_class($this->resource);
+
+        if (isset(static::$relationshipIncludes[$modelClass])) {
+            return static::$relationshipIncludes[$modelClass];
+        }
+
+        $includes = [];
+        $reflection = new \ReflectionClass($this->resource);
+
+        foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            if ($method->getNumberOfRequiredParameters() > 0) {
+                continue;
+            }
+
+            $returnType = $method->getReturnType();
+
+            if (! $returnType instanceof \ReflectionNamedType || $returnType->isBuiltin()) {
+                continue;
+            }
+
+            $typeName = $returnType->getName();
+
+            if (! is_subclass_of($typeName, Relation::class) || is_a($typeName, MorphTo::class, true)) {
+                continue;
+            }
+
+            $includes[] = $method->getName();
+        }
+
+        return static::$relationshipIncludes[$modelClass] = $includes;
     }
 
     public function getTableColumns(): array
