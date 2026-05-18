@@ -92,15 +92,11 @@ class QueryBuilderToSchema extends OperationExtension
         /** @var ObjectType $itemsType */
         $itemsType = clone $itemsSchema->type;
 
-        $attributesProperty = clone $itemsType->getProperty('attributes');
         /** @var ObjectType $attributesProperty */
-        $attributesProperty->addProperty('id', $itemsType->getProperty('id'));
+        $attributesProperty = clone $itemsType->getProperty('attributes');
 
         $filterType = new ObjectType();
         $fieldsType = new ObjectType();
-
-        $filterType->addProperty('id', new IntegerType());
-        $fieldsType->addProperty('id', new IntegerType());
 
         array_map(
             fn ($type, $name) =>
@@ -118,7 +114,7 @@ class QueryBuilderToSchema extends OperationExtension
             );
         }
 
-        $sortType = (new ArrayType())->setItems((new StringType())->enum(array_merge(['id'], array_keys($attributes))));
+        $sortType = (new ArrayType())->setItems((new StringType())->enum(array_keys($attributes)));
 
         $includeType = $includes
             ? (new ArrayType())->setItems((new StringType())->enum($includes))
@@ -193,7 +189,7 @@ class QueryBuilderToSchema extends OperationExtension
         Type $filterType = new ObjectType(),
         Type $sortType = new ArrayType(),
         Type $fieldsType = new ObjectType(),
-        Type $includeType = null,
+        ?Type $includeType = null,
     ): void {
         $paginationType = (new ObjectType())->addProperty('number', new IntegerType())->addProperty('size', new IntegerType())
             ->examples(['page[number]=1', 'page[size]=50']);

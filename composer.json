@@ -21,6 +21,7 @@
         "spatie/laravel-query-builder": "^6.4"
     },
     "require-dev": {
+        "dedoc/scramble": "^0.13",
         "nunomaduro/larastan": "^2.0",
         "orchestra/testbench": "^7.0|^8.0"
     },
