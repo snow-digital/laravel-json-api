@@ -65,7 +65,8 @@ class Schema
         $alias = Relation::getMorphAlias($class);
 
         if ($alias !== $class) {
-            return $alias;
+            // Morph aliases like `offers.entry-mobile` use characters member names may not.
+            return trim(preg_replace('/[^a-zA-Z0-9_-]+/', '-', $alias), '-_');
         }
 
         return (string) Str::of(class_basename($class))->snake()->pluralStudly();

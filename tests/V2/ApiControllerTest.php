@@ -136,10 +136,10 @@ class ApiControllerTest extends TestCase
         $response = $this->getJson('/api/v2/offers?include=entry&page[size]=2')->assertOk();
 
         $this->assertSame(['id' => '1', 'type' => 'mobiles'], $response->json('data.0.relationships.entry.data'));
-        $this->assertSame(['id' => '1', 'type' => 'offers.entry-internet'], $response->json('data.1.relationships.entry.data'));
+        $this->assertSame(['id' => '1', 'type' => 'offers-entry-internet'], $response->json('data.1.relationships.entry.data'));
         $this->assertSame(['data' => ['id' => '1', 'type' => 'mobiles']], $response->json('data.0.relationships.entry'));
         $this->assertEqualsCanonicalizing(
-            [['mobiles', '1', 0], ['offers.entry-internet', '1', 100]],
+            [['mobiles', '1', 0], ['offers-entry-internet', '1', 100]],
             collect($response->json('included'))
                 ->map(fn ($i) => [$i['type'], $i['id'], $i['attributes']['data_gb'] ?? $i['attributes']['speed']])
                 ->all(),
@@ -156,6 +156,12 @@ class ApiControllerTest extends TestCase
 
         $this->assertSame([['mobiles', '1']], collect($response->json('included'))->map(fn ($i) => [$i['type'], $i['id']])->all());
         $this->assertArrayNotHasKey('relationships', $response->json('included.0'));
+
+        // Not an allowed include path of offers: dropped whole, as Spatie loaded nothing for it.
+        $response = $this->getJson('/api/v2/offers?include=entry.parent&page[size]=1')->assertOk();
+
+        $this->assertArrayNotHasKey('included', $response->json());
+        $this->assertSame(['data' => ['id' => '1', 'type' => 'mobiles']], $response->json('data.0.relationships.entry'));
     }
 
     #[Test]
@@ -170,7 +176,7 @@ class ApiControllerTest extends TestCase
         $response = $this->resourceWithParentInclude();
 
         $included = collect($response->json('included'))->map(fn ($i) => "{$i['type']}:{$i['id']}")->sort()->values()->all();
-        $this->assertSame(['mobiles:1', 'mobiles:2', 'offers.entry-internet:1'], $included);
+        $this->assertSame(['mobiles:1', 'mobiles:2', 'offers-entry-internet:1'], $included);
         $this->assertSame(['data' => ['id' => '1', 'type' => 'offers']], $response->json('included.0.relationships.parent'));
 
     }
@@ -228,7 +234,7 @@ class ApiControllerTest extends TestCase
         $included = collect($response->json('included'))->keyBy(fn ($i) => "{$i['type']}:{$i['id']}");
 
         $this->assertEqualsCanonicalizing(
-            ['offers:1', 'offers:2', 'offers:3', 'offers:4', 'mobiles:1', 'offers.entry-internet:1', 'mobiles:2', 'offers.entry-internet:2'],
+            ['offers:1', 'offers:2', 'offers:3', 'offers:4', 'mobiles:1', 'offers-entry-internet:1', 'mobiles:2', 'offers-entry-internet:2'],
             $included->keys()->all(),
         );
         $this->assertSame(['id' => '1', 'type' => 'providers'], $included['offers:1']['relationships']['provider']['data']);
@@ -288,7 +294,7 @@ class ApiControllerTest extends TestCase
 
         $this->assertSame(0, ProviderQueryBuilder::$constructed);
         $this->assertSame('offers', $response->json('data.0.type'), 'remembered from the route key');
-        $this->assertSame('providers.provider', $response->json('included.0.type'), 'a builder-registered model needs Schema::types()');
+        $this->assertSame('providers-provider', $response->json('included.0.type'), 'a builder-registered model needs Schema::types()');
     }
 
     #[Test]
@@ -302,7 +308,7 @@ class ApiControllerTest extends TestCase
 
         $this->assertSame('2', $response->json('data.id'));
         $this->assertSame(['id' => '1', 'type' => 'providers'], $response->json('data.relationships.provider.data'));
-        $this->assertSame(['id' => '1', 'type' => 'offers.entry-internet'], $response->json('data.relationships.entry.data'));
+        $this->assertSame(['id' => '1', 'type' => 'offers-entry-internet'], $response->json('data.relationships.entry.data'));
         $this->assertCount(2, $response->json('included'));
 
         $this->getJson('/api/v2/offers/999')->assertNotFound();
