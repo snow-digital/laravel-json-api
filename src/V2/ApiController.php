@@ -35,7 +35,9 @@ class ApiController
     {
         $this->resolveResource($request, 'browse');
 
-        $paginator = $this->makeQueryBuilder()->jsonPaginate();
+        $builder = $this->makeQueryBuilder();
+        $paginator = $builder->jsonPaginate();
+        $this->restrictIncludes($request, $builder);
 
         if ($append = $request->query('append')) {
             $paginator->append(explode(',', $append));
@@ -52,8 +54,10 @@ class ApiController
     {
         $this->resolveResource($request, 'show');
 
+        $builder = $this->makeQueryBuilder();
         /** @var Model $entry */
-        $entry = $this->makeQueryBuilder()->findOrFail($request->route('id'));
+        $entry = $builder->findOrFail($request->route('id'));
+        $this->restrictIncludes($request, $builder);
 
         if ($append = $request->query('append')) {
             $entry->append(explode(',', $append));
@@ -91,6 +95,34 @@ class ApiController
         }
 
         return $builder;
+    }
+
+    /**
+     * Spatie eager loads only the allowed include paths and ignores the others (when invalid
+     * includes don't throw), but the serializer reads `include` itself and would lazy load
+     * the rest row by row. Keep only the paths Spatie loaded.
+     */
+    protected function restrictIncludes(Request $request, QueryBuilder $builder): void
+    {
+        $parameter = config('query-builder.parameters.include', 'include');
+
+        if (! $request->has($parameter) || ! $builder instanceof DefaultQueryBuilder) {
+            return;
+        }
+
+        $allowed = [];
+
+        foreach ($builder->getIncludes() as $include) {
+            if (is_string($include)) {
+                foreach (explode('.', $include) as $i => $segment) {
+                    $allowed[] = implode('.', array_slice(explode('.', $include), 0, $i + 1));
+                }
+            }
+        }
+
+        $requested = array_filter(explode(',', (string) $request->input($parameter)));
+
+        $request->query->set($parameter, implode(',', array_intersect($requested, $allowed)));
     }
 
     /**

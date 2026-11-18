@@ -70,6 +70,26 @@ class JsonApiResource extends BaseJsonApiResource
     }
 
     /**
+     * Included resources follow the requested include paths only. Laravel would also include
+     * whatever is already loaded on them, e.g. a relation eager loaded through a model's `$with`.
+     *
+     * @return $this
+     */
+    public function includePreviouslyLoadedRelationships()
+    {
+        return $this;
+    }
+
+    /**
+     * @param  Request  $request
+     * @return array<string, mixed>
+     */
+    public function with($request)
+    {
+        return PrimaryData::withoutPrimaryInIncluded(parent::with($request), [$this], $this->resolveJsonApiRequestFrom($request));
+    }
+
+    /**
      * The resource class used for related (and included) models.
      *
      * @return class-string<BaseJsonApiResource>

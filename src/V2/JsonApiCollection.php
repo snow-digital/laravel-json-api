@@ -17,4 +17,13 @@ class JsonApiCollection extends AnonymousResourceCollection
     {
         parent::__construct($resource, $collects);
     }
+
+    /**
+     * @param  \Illuminate\Http\Request  $request
+     * @return array<string, mixed>
+     */
+    public function with($request)
+    {
+        return PrimaryData::withoutPrimaryInIncluded(parent::with($request), $this->collection->all(), $this->resolveJsonApiRequestFrom($request));
+    }
 }

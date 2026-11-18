@@ -137,12 +137,65 @@ class ApiControllerTest extends TestCase
 
         $this->assertSame(['id' => '1', 'type' => 'mobiles'], $response->json('data.0.relationships.entry.data'));
         $this->assertSame(['id' => '1', 'type' => 'offers.entry-internet'], $response->json('data.1.relationships.entry.data'));
+        $this->assertSame(['data' => ['id' => '1', 'type' => 'mobiles']], $response->json('data.0.relationships.entry'));
         $this->assertEqualsCanonicalizing(
             [['mobiles', '1', 0], ['offers.entry-internet', '1', 100]],
             collect($response->json('included'))
                 ->map(fn ($i) => [$i['type'], $i['id'], $i['attributes']['data_gb'] ?? $i['attributes']['speed']])
                 ->all(),
         );
+    }
+
+    #[Test]
+    public function eager_loaded_relations_of_included_resources_are_not_included(): void
+    {
+        $this->seedOffers();
+
+        // EntryMobile eager loads its `parent` offer through `$with`.
+        $response = $this->getJson('/api/v2/offers?include=entry&page[size]=1')->assertOk();
+
+        $this->assertSame([['mobiles', '1']], collect($response->json('included'))->map(fn ($i) => [$i['type'], $i['id']])->all());
+        $this->assertArrayNotHasKey('relationships', $response->json('included.0'));
+    }
+
+    #[Test]
+    public function primary_resources_are_never_repeated_in_included(): void
+    {
+        $this->seedOffers();
+
+        // offers 1 and 3 are on the page and also reached again through entry.parent
+        $response = $this->getJson('/api/v2/providers/1?include=offers.entry.parent')->assertOk();
+        $this->assertSame([], collect($response->json('included'))->where('type', 'providers')->all());
+
+        $response = $this->resourceWithParentInclude();
+
+        $included = collect($response->json('included'))->map(fn ($i) => "{$i['type']}:{$i['id']}")->sort()->values()->all();
+        $this->assertSame(['mobiles:1', 'mobiles:2', 'offers.entry-internet:1'], $included);
+        $this->assertSame(['data' => ['id' => '1', 'type' => 'offers']], $response->json('included.0.relationships.parent'));
+
+    }
+
+    /** The builders don't allow `entry.parent`, so serialize directly, as a custom endpoint would. */
+    protected function resourceWithParentInclude(): \Illuminate\Testing\TestResponse
+    {
+        \Illuminate\Support\Facades\Route::get('direct', fn () => \SnowDigital\JsonApi\V2\JsonApiResource::collection(Offer::with('entry')->paginate(3)));
+
+        return $this->getJson('/direct?include=entry.parent')->assertOk();
+    }
+
+    #[Test]
+    public function includes_the_builder_does_not_allow_are_not_lazy_loaded(): void
+    {
+        $this->seedOffers();
+
+        DB::enableQueryLog();
+        $response = $this->getJson('/api/v2/offers?include=provider.offers,duplicating,provider&page[size]=100')->assertOk();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame(3, $queries, 'count + page + providers');
+        $this->assertSame(['providers'], collect($response->json('included'))->pluck('type')->unique()->values()->all());
+        $this->assertArrayNotHasKey('offers', $response->json('included.0.relationships') ?? []);
     }
 
     #[Test]
@@ -218,11 +271,11 @@ class ApiControllerTest extends TestCase
         // count + page
         $this->assertSame(2, $count('/api/v2/offers?page[size]=5'));
         $this->assertSame(2, $count('/api/v2/offers?page[size]=22'));
-        // + providers + one per entry type
-        $this->assertSame(5, $count('/api/v2/offers?include=provider,entry&page[size]=5'));
-        $this->assertSame(5, $count('/api/v2/offers?include=provider,entry&page[size]=22'));
-        // count + page + offers + one per entry type
-        $this->assertSame(5, $count('/api/v2/providers?include=offers.entry'));
+        // + providers + one per entry type + the mobile entries' `$with` parent
+        $this->assertSame(6, $count('/api/v2/offers?include=provider,entry&page[size]=5'));
+        $this->assertSame(6, $count('/api/v2/offers?include=provider,entry&page[size]=22'));
+        // count + page + offers + one per entry type + `$with` parent
+        $this->assertSame(6, $count('/api/v2/providers?include=offers.entry'));
     }
 
     #[Test]
