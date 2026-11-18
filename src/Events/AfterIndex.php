@@ -2,12 +2,12 @@
 
 namespace SnowDigital\JsonApi\Events;
 
-use SnowDigital\JsonApi\Resources\JsonApiCollection;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 class AfterIndex
 {
     public function __construct(
         public string $resource,
-        public JsonApiCollection $collection,
+        public ResourceCollection $collection,
     ) {}
 }
