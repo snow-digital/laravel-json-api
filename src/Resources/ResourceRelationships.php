@@ -34,7 +34,7 @@ class ResourceRelationships
     }
 
     /**
-     * Top-level relationship names (`offers.entry` declares `offers`).
+     * Top-level relationship names (`posts.author` declares `posts`).
      *
      * @return list<string>
      */

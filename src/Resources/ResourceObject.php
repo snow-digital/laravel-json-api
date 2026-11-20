@@ -48,7 +48,8 @@ class ResourceObject extends BaseJsonApiResource
         }
 
         return Arr::except($this->resource->attributesToArray(), [
-            // `id` and `type` share the resource object's namespace; `type` is kept as offers use it.
+            // `id` and `type` share the resource object's namespace. A model attribute named
+            // `type` is kept rather than silently dropped, although the spec reserves the name.
             'id',
             ...$this->foreignKeys(),
         ]);

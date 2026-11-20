@@ -8,8 +8,8 @@ By default, `JsonApiResource` returns `{id, attributes}` with every loaded relat
 
 - `type`, `id`, `attributes`, `relationships`;
 - `included`, deduplicated by `type:id` across the whole page, never repeating a resource of `data`;
-- nested includes (`include=offers.entry`);
-- sparse fieldsets per type (`fields[providers]=name`).
+- nested includes (`include=posts.author`);
+- sparse fieldsets per type (`fields[authors]=name`).
 
 Both formats can be served side by side, from the same registered resources.
 
@@ -72,15 +72,15 @@ routes, for example to serve them as a second API version:
 ```php
 Route::prefix('api/v2')->name('api:v2:')->group(function () {
     Route::get('{resource}', [ResourceObjectController::class, 'index'])
-        ->whereIn('resource', ['offers', 'providers'])
+        ->whereIn('resource', ['posts', 'authors'])
         ->name('index');
     Route::get('{resource}/{id}', [ResourceObjectController::class, 'show'])
-        ->whereIn('resource', ['offers', 'providers'])
+        ->whereIn('resource', ['posts', 'authors'])
         ->name('show');
 });
 ```
 
-A fixed route works too: `Route::get('offers', [...])->defaults('resource', 'offers')`.
+A fixed route works too: `Route::get('posts', [...])->defaults('resource', 'posts')`.
 
 `index` fires `AfterIndex` as usual (its `collection` is a `ResourceCollection`), so listeners
 such as `meta=attributes` keep working.
@@ -93,18 +93,18 @@ When the resource class is a `ResourceObject` (`usesResourceObjects()`), the con
 
 For a custom read (e.g. by slug), extend the controller and reuse its steps: `ensureAction('show')`
 (the built-in actions keep that check inline, where Scramble sees the 404),
-`newQueryBuilder()`, `afterQuery($builder)`, `newResource($entry)`. The resource is already
+`newQueryBuilder()`, `afterQuery($builder)`, `newResource($model)`. The resource is already
 resolved from the route's `resource` parameter (or default).
 
 ## Types
 
 `JsonApi::type($model)` is, in order:
 
-1. the key given with `JsonApi::types([Offer::class => 'offers'])`, used as given;
-2. the key a model class is registered under directly (`JsonApi::setResource('ratings', Rating::class)`);
+1. the key given with `JsonApi::types([Post::class => 'posts'])`, used as given;
+2. the key a model class is registered under directly (`JsonApi::setResource('comments', Comment::class)`);
 3. the key the controller is serving (remembered for its model);
 4. the morph alias, with characters JSON:API member names forbid replaced by `-`
-   (`offers.entry-mobile` gives `offers-entry-mobile`);
+   (`posts.content-video` gives `posts-content-video`);
 5. Laravel's default, the model's class basename in snake case, plural.
 
 **Register the types of models served through a query builder.** A builder's model is only known
@@ -113,26 +113,26 @@ have side effects), so the controller never constructs a builder other than the 
 
 ```php
 JsonApi::types([
-    Offer::class => 'offers',
-    Provider::class => 'providers',
+    Post::class => 'posts',
+    Author::class => 'authors',
 ]);
 ```
 
-Without this, a provider included in `offers` falls back to its morph alias (`providers-provider`).
+Without this, an author included in `posts` falls back to its morph alias (`authors-author`).
 
 ## Relationships
 
 A type declares the relationships its builder allows as includes (`getIncludes()`, top-level names:
-`offers.entry` declares `offers`). For builders other than the one being served, `getIncludes()` is
+`posts.author` declares `posts`). For builders other than the one being served, `getIncludes()` is
 called on an instance that was never constructed, with only `$resource` set: it must not depend
 on anything else the constructor does.
 
 - **belongsTo and morphTo always carry an identifier**, even without `include`. It is read from the
   foreign key (and the morph type column), with no load and no query. A null key gives `data: null`.
-- Their columns (`provider_id`, `entry_id`, `entry_type`) are removed from `attributes`.
+- Their columns (`author_id`, `content_id`, `content_type`) are removed from `attributes`.
 - hasMany, belongsToMany and morphMany appear only when included.
 - `id` is removed from `attributes`; it is the resource object's `id`. An attribute called `type`
-  is kept (offers have one), although the spec reserves the name.
+  is kept rather than silently dropped, although the spec reserves the name.
 - A belongsTo whose owner key is not the related primary key gets an identifier only when loaded.
 
 Included models are serialized with `ResourceObject`; override `relatedResourceClass()` to change
@@ -143,9 +143,9 @@ that per relation.
 Includes follow the requested paths only:
 
 - An included resource does not pull in relations that merely happen to be loaded on it (Laravel's
-  default), e.g. a `parent` eager loaded through a model's `$with`.
+  default), e.g. an owner eager loaded through a model's `$with`.
 - A resource in `data` is never repeated in `included`, even when a path reaches it again
-  (`entry.parent`).
+  (`comments.post`).
 - The controller keeps only the include paths the query builder allows, the ones Spatie eager
   loaded. Laravel would otherwise lazy load the others row by row when invalid includes are
   configured not to throw. A custom endpoint serializing its own query should eager load what it
@@ -165,18 +165,18 @@ serializer applies sparse fieldsets. Unknown fields are ignored rather than reje
 Extend the resource to serialize something the generic controller does not serve:
 
 ```php
-class OfferResultResource extends \SnowDigital\JsonApi\Resources\ResourceObject
+class PostSummaryResource extends \SnowDigital\JsonApi\Resources\ResourceObject
 {
     public function toAttributes(Request $request): array
     {
         return [
             ...parent::toAttributes($request),
-            'availability_mobile' => $this->resource->availability_mobile,
+            'excerpt' => Str::limit($this->resource->body, 100),
         ];
     }
 }
 
-return OfferResultResource::collection($paginator); // a CompoundDocument
+return PostSummaryResource::collection($paginator); // a CompoundDocument
 ```
 
 The type, identifiers and foreign-key removal still come from the registry, so register the

@@ -6,19 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Provider extends Model
+class Author extends Model
 {
     protected $guarded = [];
 
     protected $casts = ['data' => 'array'];
 
-    public function offers(): HasMany
+    public function posts(): HasMany
     {
-        return $this->hasMany(Offer::class);
+        return $this->hasMany(Post::class);
     }
 
-    public function ratings(): MorphMany
+    public function comments(): MorphMany
     {
-        return $this->morphMany(Rating::class, 'rateable');
+        return $this->morphMany(Comment::class, 'commentable');
     }
 }

@@ -9,7 +9,7 @@ trait KeepsPrimaryDataOutOfIncluded
 {
     /**
      * A document holds one object per `type:id`: Laravel only dedupes `included` against itself,
-     * so a row reached again through a relation (e.g. `entry.parent`) would be repeated.
+     * so a row reached again through a relation (e.g. `comments.post`) would be repeated.
      *
      * @param  array<string, mixed>  $with
      * @param  array<int, ResourceObject>  $primary

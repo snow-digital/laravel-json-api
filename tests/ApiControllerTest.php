@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\Test;
 use SnowDigital\JsonApi\Events\AfterIndex;
-use SnowDigital\JsonApi\Tests\Fixtures\EntryInternet;
-use SnowDigital\JsonApi\Tests\Fixtures\EntryMobile;
-use SnowDigital\JsonApi\Tests\Fixtures\Offer;
-use SnowDigital\JsonApi\Tests\Fixtures\Provider;
-use SnowDigital\JsonApi\Tests\Fixtures\ProviderQueryBuilder;
-use SnowDigital\JsonApi\Tests\Fixtures\Rating;
+use SnowDigital\JsonApi\Tests\Fixtures\Article;
+use SnowDigital\JsonApi\Tests\Fixtures\Video;
+use SnowDigital\JsonApi\Tests\Fixtures\Post;
+use SnowDigital\JsonApi\Tests\Fixtures\Author;
+use SnowDigital\JsonApi\Tests\Fixtures\AuthorQueryBuilder;
+use SnowDigital\JsonApi\Tests\Fixtures\Comment;
 use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\Resources\CompoundDocument;
 use SnowDigital\JsonApi\Resources\ResourceObject;
@@ -23,9 +23,9 @@ class ApiControllerTest extends TestCase
         parent::setUp();
 
         JsonApi::types([
-            Offer::class => 'offers',
-            Provider::class => 'providers',
-            Rating::class => 'ratings',
+            Post::class => 'posts',
+            Author::class => 'authors',
+            Comment::class => 'comments',
         ]);
     }
 
@@ -33,22 +33,22 @@ class ApiControllerTest extends TestCase
     public function attributes_resources_nest_relations_inside_attributes(): void
     {
         // The default resource classes: what /api/v1 has always served.
-        $provider = Provider::create(['name' => 'Alpha', 'slug' => 'alpha']);
-        $entry = EntryMobile::create(['data_gb' => 5]);
-        Offer::create(['name' => 'one', 'provider_id' => $provider->id, 'entry_type' => 'offers.entry-mobile', 'entry_id' => $entry->id]);
+        $author = Author::create(['name' => 'Alpha', 'slug' => 'alpha']);
+        $content = Video::create(['seconds' => 5]);
+        Post::create(['name' => 'one', 'author_id' => $author->id, 'content_type' => 'posts.content-video', 'content_id' => $content->id]);
 
-        $response = $this->getJson('/api/v1/offers?include=provider,entry')
+        $response = $this->getJson('/api/v1/posts?include=author,content')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/json');
 
         $this->assertSame(['id', 'attributes'], array_keys($response->json('data.0')));
         $this->assertSame(1, $response->json('data.0.attributes.id'));
-        $this->assertSame(1, $response->json('data.0.attributes.provider_id'));
-        $this->assertSame('Alpha', $response->json('data.0.attributes.provider.name'));
-        $this->assertSame(5, $response->json('data.0.attributes.entry.data_gb'));
+        $this->assertSame(1, $response->json('data.0.attributes.author_id'));
+        $this->assertSame('Alpha', $response->json('data.0.attributes.author.name'));
+        $this->assertSame(5, $response->json('data.0.attributes.content.seconds'));
         $this->assertArrayNotHasKey('included', $response->json());
 
-        $this->getJson('/api/v1/offers/1')
+        $this->getJson('/api/v1/posts/1')
             ->assertOk()
             ->assertJsonPath('data.id', '1')
             ->assertJsonPath('data.attributes.name', 'one');
@@ -57,130 +57,130 @@ class ApiControllerTest extends TestCase
     #[Test]
     public function a_reused_controller_serves_the_resource_of_each_request(): void
     {
-        Provider::create(['name' => 'Alpha', 'slug' => 'alpha']);
-        Offer::create(['name' => 'one']);
+        Author::create(['name' => 'Alpha', 'slug' => 'alpha']);
+        Post::create(['name' => 'one']);
 
         // One `{resource}` route keeps one controller instance across requests.
-        $this->getJson('/api/v1/offers')->assertOk()->assertJsonPath('data.0.attributes.name', 'one');
-        $this->getJson('/api/v1/providers')->assertOk()->assertJsonPath('data.0.attributes.name', 'Alpha');
-        $this->getJson('/api/v1/offers/1')->assertOk()->assertJsonPath('data.attributes.name', 'one');
-        $this->getJson('/api/v2/providers/1')->assertOk()->assertJsonPath('data.type', 'providers');
-        $this->getJson('/api/v2/offers/1')->assertOk()->assertJsonPath('data.type', 'offers');
+        $this->getJson('/api/v1/posts')->assertOk()->assertJsonPath('data.0.attributes.name', 'one');
+        $this->getJson('/api/v1/authors')->assertOk()->assertJsonPath('data.0.attributes.name', 'Alpha');
+        $this->getJson('/api/v1/posts/1')->assertOk()->assertJsonPath('data.attributes.name', 'one');
+        $this->getJson('/api/v2/authors/1')->assertOk()->assertJsonPath('data.type', 'authors');
+        $this->getJson('/api/v2/posts/1')->assertOk()->assertJsonPath('data.type', 'posts');
     }
 
     /**
-     * 2 providers sharing 8 offers, 1 offer without provider, 1 offer of a third provider.
+     * 2 authors sharing 8 posts, 1 post without author, 1 post of a third author.
      *
-     * @return array{0: Provider, 1: Provider, 2: Provider}
+     * @return array{0: Author, 1: Author, 2: Author}
      */
-    protected function seedOffers(int $perProvider = 4): array
+    protected function seedPosts(int $perAuthor = 4): array
     {
-        $providers = [
-            Provider::create(['name' => 'Alpha', 'slug' => 'alpha', 'data' => ['blurb' => str_repeat('a', 50)]]),
-            Provider::create(['name' => 'Beta', 'slug' => 'beta', 'data' => ['blurb' => 'b']]),
-            Provider::create(['name' => 'Gamma', 'slug' => 'gamma']),
+        $authors = [
+            Author::create(['name' => 'Alpha', 'slug' => 'alpha', 'data' => ['blurb' => str_repeat('a', 50)]]),
+            Author::create(['name' => 'Beta', 'slug' => 'beta', 'data' => ['blurb' => 'b']]),
+            Author::create(['name' => 'Gamma', 'slug' => 'gamma']),
         ];
 
         foreach ([0, 1] as $p) {
-            for ($i = 0; $i < $perProvider; $i++) {
-                $entry = $i % 2
-                    ? EntryInternet::create(['speed' => 100 * $i])
-                    : EntryMobile::create(['data_gb' => 10 * $i]);
+            for ($i = 0; $i < $perAuthor; $i++) {
+                $content = $i % 2
+                    ? Article::create(['words' => 100 * $i])
+                    : Video::create(['seconds' => 10 * $i]);
 
-                Offer::create([
-                    'name' => "offer {$p}-{$i}",
-                    'type' => $i % 2 ? 'internet' : 'mobile',
-                    'provider_id' => $providers[$p]->id,
-                    'entry_type' => $entry instanceof EntryInternet ? 'offers.entry-internet' : 'offers.entry-mobile',
-                    'entry_id' => $entry->id,
+                Post::create([
+                    'name' => "post {$p}-{$i}",
+                    'type' => $i % 2 ? 'article' : 'video',
+                    'author_id' => $authors[$p]->id,
+                    'content_type' => $content instanceof Article ? 'posts.content-article' : 'posts.content-video',
+                    'content_id' => $content->id,
                     'secret' => 'hidden',
                 ]);
             }
         }
 
-        Offer::create(['name' => 'orphan', 'provider_id' => null]);
-        Offer::create(['name' => 'gamma offer', 'provider_id' => $providers[2]->id, 'duplicating_id' => 1]);
+        Post::create(['name' => 'orphan', 'author_id' => null]);
+        Post::create(['name' => 'gamma post', 'author_id' => $authors[2]->id, 'original_id' => 1]);
 
-        return $providers;
+        return $authors;
     }
 
     #[Test]
     public function it_deduplicates_included_resources_across_the_page(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $response = $this->getJson('/api/v2/offers?include=provider&page[size]=100')
+        $response = $this->getJson('/api/v2/posts?include=author&page[size]=100')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/vnd.api+json');
 
         $this->assertCount(10, $response->json('data'));
         $this->assertSame(
-            ['providers:1', 'providers:2', 'providers:3'],
+            ['authors:1', 'authors:2', 'authors:3'],
             collect($response->json('included'))->map(fn ($i) => "{$i['type']}:{$i['id']}")->sort()->values()->all(),
         );
         $this->assertSame('Alpha', $response->json('included.0.attributes.name'));
         $this->assertSame(['blurb' => str_repeat('a', 50)], $response->json('included.0.attributes.data'));
-        $this->assertSame(['id' => '1', 'type' => 'providers'], $response->json('data.0.relationships.provider.data'));
+        $this->assertSame(['id' => '1', 'type' => 'authors'], $response->json('data.0.relationships.author.data'));
     }
 
     #[Test]
     public function belongs_to_identifiers_are_present_without_include(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $response = $this->getJson('/api/v2/offers?page[size]=100')->assertOk();
+        $response = $this->getJson('/api/v2/posts?page[size]=100')->assertOk();
 
         $first = $response->json('data.0');
-        $this->assertSame('offers', $first['type']);
+        $this->assertSame('posts', $first['type']);
         $this->assertSame('1', $first['id']);
-        $this->assertSame(['id' => '1', 'type' => 'providers'], $first['relationships']['provider']['data']);
-        $this->assertSame(['id' => '1', 'type' => 'mobiles'], $first['relationships']['entry']['data']);
-        $this->assertArrayNotHasKey('duplicating', $first['relationships'], 'not a declared include');
+        $this->assertSame(['id' => '1', 'type' => 'authors'], $first['relationships']['author']['data']);
+        $this->assertSame(['id' => '1', 'type' => 'videos'], $first['relationships']['content']['data']);
+        $this->assertArrayNotHasKey('original', $first['relationships'], 'not a declared include');
         $this->assertArrayNotHasKey('included', $response->json());
     }
 
     #[Test]
     public function relation_columns_are_not_attributes(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $attributes = $this->getJson('/api/v2/offers?include=provider,entry')->json('data.0.attributes');
+        $attributes = $this->getJson('/api/v2/posts?include=author,content')->json('data.0.attributes');
 
-        foreach (['id', 'provider_id', 'entry_id', 'entry_type', 'secret', 'provider', 'entry'] as $key) {
+        foreach (['id', 'author_id', 'content_id', 'content_type', 'secret', 'author', 'content'] as $key) {
             $this->assertArrayNotHasKey($key, $attributes);
         }
 
-        $this->assertSame(['name', 'type', 'duplicating_id', 'created_at', 'updated_at'], array_keys($attributes));
+        $this->assertSame(['name', 'type', 'original_id', 'created_at', 'updated_at'], array_keys($attributes));
     }
 
     #[Test]
     public function a_null_foreign_key_gives_null_data(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $orphan = fn (string $query) => collect($this->getJson("/api/v2/offers?page[size]=100{$query}")->json('data'))
+        $orphan = fn (string $query) => collect($this->getJson("/api/v2/posts?page[size]=100{$query}")->json('data'))
             ->firstWhere('attributes.name', 'orphan');
 
-        $this->assertSame(['data' => null], $orphan('')['relationships']['provider']);
-        $this->assertSame(['data' => null], $orphan('')['relationships']['entry']);
-        $this->assertSame(['data' => null], $orphan('&include=provider,entry')['relationships']['provider']);
-        $this->assertSame(['data' => null], $orphan('&include=provider,entry')['relationships']['entry']);
+        $this->assertSame(['data' => null], $orphan('')['relationships']['author']);
+        $this->assertSame(['data' => null], $orphan('')['relationships']['content']);
+        $this->assertSame(['data' => null], $orphan('&include=author,content')['relationships']['author']);
+        $this->assertSame(['data' => null], $orphan('&include=author,content')['relationships']['content']);
     }
 
     #[Test]
     public function morph_types_come_from_the_registered_key_then_the_morph_alias(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $response = $this->getJson('/api/v2/offers?include=entry&page[size]=2')->assertOk();
+        $response = $this->getJson('/api/v2/posts?include=content&page[size]=2')->assertOk();
 
-        $this->assertSame(['id' => '1', 'type' => 'mobiles'], $response->json('data.0.relationships.entry.data'));
-        $this->assertSame(['id' => '1', 'type' => 'offers-entry-internet'], $response->json('data.1.relationships.entry.data'));
-        $this->assertSame(['data' => ['id' => '1', 'type' => 'mobiles']], $response->json('data.0.relationships.entry'));
+        $this->assertSame(['id' => '1', 'type' => 'videos'], $response->json('data.0.relationships.content.data'));
+        $this->assertSame(['id' => '1', 'type' => 'posts-content-article'], $response->json('data.1.relationships.content.data'));
+        $this->assertSame(['data' => ['id' => '1', 'type' => 'videos']], $response->json('data.0.relationships.content'));
         $this->assertEqualsCanonicalizing(
-            [['mobiles', '1', 0], ['offers-entry-internet', '1', 100]],
+            [['videos', '1', 0], ['posts-content-article', '1', 100]],
             collect($response->json('included'))
-                ->map(fn ($i) => [$i['type'], $i['id'], $i['attributes']['data_gb'] ?? $i['attributes']['speed']])
+                ->map(fn ($i) => [$i['type'], $i['id'], $i['attributes']['seconds'] ?? $i['attributes']['words']])
                 ->all(),
         );
     }
@@ -188,121 +188,121 @@ class ApiControllerTest extends TestCase
     #[Test]
     public function eager_loaded_relations_of_included_resources_are_not_included(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        // EntryMobile eager loads its `parent` offer through `$with`.
-        $response = $this->getJson('/api/v2/offers?include=entry&page[size]=1')->assertOk();
+        // Video eager loads its `post` through `$with`.
+        $response = $this->getJson('/api/v2/posts?include=content&page[size]=1')->assertOk();
 
-        $this->assertSame([['mobiles', '1']], collect($response->json('included'))->map(fn ($i) => [$i['type'], $i['id']])->all());
+        $this->assertSame([['videos', '1']], collect($response->json('included'))->map(fn ($i) => [$i['type'], $i['id']])->all());
         $this->assertArrayNotHasKey('relationships', $response->json('included.0'));
 
-        // Not an allowed include path of offers: dropped whole, as Spatie loaded nothing for it.
-        $response = $this->getJson('/api/v2/offers?include=entry.parent&page[size]=1')->assertOk();
+        // Not an allowed include path of posts: dropped whole, as Spatie loaded nothing for it.
+        $response = $this->getJson('/api/v2/posts?include=content.post&page[size]=1')->assertOk();
 
         $this->assertArrayNotHasKey('included', $response->json());
-        $this->assertSame(['data' => ['id' => '1', 'type' => 'mobiles']], $response->json('data.0.relationships.entry'));
+        $this->assertSame(['data' => ['id' => '1', 'type' => 'videos']], $response->json('data.0.relationships.content'));
     }
 
     #[Test]
     public function primary_resources_are_never_repeated_in_included(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        // offers 1 and 3 are on the page and also reached again through entry.parent
-        $response = $this->getJson('/api/v2/providers/1?include=offers.entry.parent')->assertOk();
-        $this->assertSame([], collect($response->json('included'))->where('type', 'providers')->all());
+        // posts 1 and 3 are on the page and also reached again through content.post
+        $response = $this->getJson('/api/v2/authors/1?include=posts.content.post')->assertOk();
+        $this->assertSame([], collect($response->json('included'))->where('type', 'authors')->all());
 
-        $response = $this->resourceWithParentInclude();
+        $response = $this->resourceWithOwnerInclude();
 
         $included = collect($response->json('included'))->map(fn ($i) => "{$i['type']}:{$i['id']}")->sort()->values()->all();
-        $this->assertSame(['mobiles:1', 'mobiles:2', 'offers-entry-internet:1'], $included);
-        $this->assertSame(['data' => ['id' => '1', 'type' => 'offers']], $response->json('included.0.relationships.parent'));
+        $this->assertSame(['posts-content-article:1', 'videos:1', 'videos:2'], $included);
+        $this->assertSame(['data' => ['id' => '1', 'type' => 'posts']], $response->json('included.0.relationships.post'));
 
     }
 
-    /** The builders don't allow `entry.parent`, so serialize directly, as a custom endpoint would. */
-    protected function resourceWithParentInclude(): \Illuminate\Testing\TestResponse
+    /** The builders don't allow `content.post`, so serialize directly, as a custom endpoint would. */
+    protected function resourceWithOwnerInclude(): \Illuminate\Testing\TestResponse
     {
-        \Illuminate\Support\Facades\Route::get('direct', fn () => ResourceObject::collection(Offer::with('entry')->paginate(3)));
+        \Illuminate\Support\Facades\Route::get('direct', fn () => ResourceObject::collection(Post::with('content')->paginate(3)));
 
-        return $this->getJson('/direct?include=entry.parent')->assertOk();
+        return $this->getJson('/direct?include=content.post')->assertOk();
     }
 
     #[Test]
     public function includes_the_builder_does_not_allow_are_not_lazy_loaded(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
         DB::enableQueryLog();
-        $response = $this->getJson('/api/v2/offers?include=provider.offers,duplicating,provider&page[size]=100')->assertOk();
+        $response = $this->getJson('/api/v2/posts?include=author.posts,original,author&page[size]=100')->assertOk();
         $queries = count(DB::getQueryLog());
         DB::disableQueryLog();
 
-        $this->assertSame(3, $queries, 'count + page + providers');
-        $this->assertSame(['providers'], collect($response->json('included'))->pluck('type')->unique()->values()->all());
-        $this->assertArrayNotHasKey('offers', $response->json('included.0.relationships') ?? []);
+        $this->assertSame(3, $queries, 'count + page + authors');
+        $this->assertSame(['authors'], collect($response->json('included'))->pluck('type')->unique()->values()->all());
+        $this->assertArrayNotHasKey('posts', $response->json('included.0.relationships') ?? []);
     }
 
     #[Test]
     public function a_pure_morph_to_uses_the_morph_type_column(): void
     {
-        [$alpha] = $this->seedOffers();
-        Rating::create(['rateable_type' => 'providers.provider', 'rateable_id' => $alpha->id, 'score' => 4]);
-        Rating::create(['rateable_type' => 'offers.offer', 'rateable_id' => 3, 'score' => 2]);
+        [$alpha] = $this->seedPosts();
+        Comment::create(['commentable_type' => 'authors.author', 'commentable_id' => $alpha->id, 'score' => 4]);
+        Comment::create(['commentable_type' => 'posts.post', 'commentable_id' => 3, 'score' => 2]);
 
-        $response = $this->getJson('/api/v2/ratings')->assertOk();
+        $response = $this->getJson('/api/v2/comments')->assertOk();
 
-        $this->assertSame(['id' => (string) $alpha->id, 'type' => 'providers'], $response->json('data.0.relationships.rateable.data'));
-        $this->assertSame(['id' => '3', 'type' => 'offers'], $response->json('data.1.relationships.rateable.data'));
+        $this->assertSame(['id' => (string) $alpha->id, 'type' => 'authors'], $response->json('data.0.relationships.commentable.data'));
+        $this->assertSame(['id' => '3', 'type' => 'posts'], $response->json('data.1.relationships.commentable.data'));
         $this->assertSame(['score', 'created_at', 'updated_at'], array_keys($response->json('data.0.attributes')));
     }
 
     #[Test]
     public function nested_includes_resolve_through_included_resources(): void
     {
-        $this->seedOffers(2);
+        $this->seedPosts(2);
 
-        $response = $this->getJson('/api/v2/providers?include=offers.entry&page[size]=2')->assertOk();
+        $response = $this->getJson('/api/v2/authors?include=posts.content&page[size]=2')->assertOk();
 
         $this->assertSame(
-            [['id' => '1', 'type' => 'offers'], ['id' => '2', 'type' => 'offers']],
-            $response->json('data.0.relationships.offers.data'),
+            [['id' => '1', 'type' => 'posts'], ['id' => '2', 'type' => 'posts']],
+            $response->json('data.0.relationships.posts.data'),
         );
-        $this->assertArrayNotHasKey('ratings', $response->json('data.0.relationships'), 'hasMany only when included');
+        $this->assertArrayNotHasKey('comments', $response->json('data.0.relationships'), 'hasMany only when included');
 
         $included = collect($response->json('included'))->keyBy(fn ($i) => "{$i['type']}:{$i['id']}");
 
         $this->assertEqualsCanonicalizing(
-            ['offers:1', 'offers:2', 'offers:3', 'offers:4', 'mobiles:1', 'offers-entry-internet:1', 'mobiles:2', 'offers-entry-internet:2'],
+            ['posts:1', 'posts:2', 'posts:3', 'posts:4', 'videos:1', 'posts-content-article:1', 'videos:2', 'posts-content-article:2'],
             $included->keys()->all(),
         );
-        $this->assertSame(['id' => '1', 'type' => 'providers'], $included['offers:1']['relationships']['provider']['data']);
-        $this->assertSame(['id' => '1', 'type' => 'mobiles'], $included['offers:1']['relationships']['entry']['data']);
-        $this->assertArrayNotHasKey('provider_id', $included['offers:1']['attributes']);
+        $this->assertSame(['id' => '1', 'type' => 'authors'], $included['posts:1']['relationships']['author']['data']);
+        $this->assertSame(['id' => '1', 'type' => 'videos'], $included['posts:1']['relationships']['content']['data']);
+        $this->assertArrayNotHasKey('author_id', $included['posts:1']['attributes']);
     }
 
     #[Test]
     public function sparse_fieldsets_apply_per_type_and_keep_identifiers(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $response = $this->getJson('/api/v2/offers?fields[offers]=name&include=provider&fields[providers]=name')->assertOk();
+        $response = $this->getJson('/api/v2/posts?fields[posts]=name&include=author&fields[authors]=name')->assertOk();
 
-        $this->assertSame(['name' => 'offer 0-0'], $response->json('data.0.attributes'));
-        $this->assertSame(['id' => '1', 'type' => 'providers'], $response->json('data.0.relationships.provider.data'));
+        $this->assertSame(['name' => 'post 0-0'], $response->json('data.0.attributes'));
+        $this->assertSame(['id' => '1', 'type' => 'authors'], $response->json('data.0.relationships.author.data'));
         $this->assertSame(['name' => 'Alpha'], $response->json('included.0.attributes'));
 
-        $response = $this->getJson('/api/v2/offers?fields[offers]=name')->assertOk();
+        $response = $this->getJson('/api/v2/posts?fields[posts]=name')->assertOk();
 
-        $this->assertSame(['name' => 'offer 0-0'], $response->json('data.0.attributes'));
-        $this->assertSame(['id' => '1', 'type' => 'providers'], $response->json('data.0.relationships.provider.data'));
-        $this->assertSame(['id' => '1', 'type' => 'mobiles'], $response->json('data.0.relationships.entry.data'));
+        $this->assertSame(['name' => 'post 0-0'], $response->json('data.0.attributes'));
+        $this->assertSame(['id' => '1', 'type' => 'authors'], $response->json('data.0.relationships.author.data'));
+        $this->assertSame(['id' => '1', 'type' => 'videos'], $response->json('data.0.relationships.content.data'));
     }
 
     #[Test]
     public function serializing_adds_no_query_per_row(): void
     {
-        $this->seedOffers(10);
+        $this->seedPosts(10);
 
         $count = function (string $url): int {
             DB::flushQueryLog();
@@ -314,84 +314,84 @@ class ApiControllerTest extends TestCase
         };
 
         // count + page
-        $this->assertSame(2, $count('/api/v2/offers?page[size]=5'));
-        $this->assertSame(2, $count('/api/v2/offers?page[size]=22'));
-        // + providers + one per entry type + the mobile entries' `$with` parent
-        $this->assertSame(6, $count('/api/v2/offers?include=provider,entry&page[size]=5'));
-        $this->assertSame(6, $count('/api/v2/offers?include=provider,entry&page[size]=22'));
-        // count + page + offers + one per entry type + `$with` parent
-        $this->assertSame(6, $count('/api/v2/providers?include=offers.entry'));
+        $this->assertSame(2, $count('/api/v2/posts?page[size]=5'));
+        $this->assertSame(2, $count('/api/v2/posts?page[size]=22'));
+        // + authors + one per content type + the videos' `$with` post
+        $this->assertSame(6, $count('/api/v2/posts?include=author,content&page[size]=5'));
+        $this->assertSame(6, $count('/api/v2/posts?include=author,content&page[size]=22'));
+        // count + page + posts + one per content type + `$with` post
+        $this->assertSame(6, $count('/api/v2/authors?include=posts.content'));
     }
 
     #[Test]
     public function only_the_requested_builder_is_constructed(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
         $this->flushTypes();
 
-        $response = $this->getJson('/api/v2/offers?include=provider')->assertOk();
+        $response = $this->getJson('/api/v2/posts?include=author')->assertOk();
 
-        $this->assertSame(0, ProviderQueryBuilder::$constructed);
-        $this->assertSame('offers', $response->json('data.0.type'), 'remembered from the route key');
-        $this->assertSame('providers-provider', $response->json('included.0.type'), 'a builder-registered model needs JsonApi::types()');
+        $this->assertSame(0, AuthorQueryBuilder::$constructed);
+        $this->assertSame('posts', $response->json('data.0.type'), 'remembered from the route key');
+        $this->assertSame('authors-author', $response->json('included.0.type'), 'a builder-registered model needs JsonApi::types()');
     }
 
     #[Test]
     public function show_returns_one_resource_with_its_includes(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $response = $this->getJson('/api/v2/offers/2?include=provider,entry')
+        $response = $this->getJson('/api/v2/posts/2?include=author,content')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/vnd.api+json');
 
         $this->assertSame('2', $response->json('data.id'));
-        $this->assertSame(['id' => '1', 'type' => 'providers'], $response->json('data.relationships.provider.data'));
-        $this->assertSame(['id' => '1', 'type' => 'offers-entry-internet'], $response->json('data.relationships.entry.data'));
+        $this->assertSame(['id' => '1', 'type' => 'authors'], $response->json('data.relationships.author.data'));
+        $this->assertSame(['id' => '1', 'type' => 'posts-content-article'], $response->json('data.relationships.content.data'));
         $this->assertCount(2, $response->json('included'));
 
-        $this->getJson('/api/v2/offers/999')->assertNotFound();
+        $this->getJson('/api/v2/posts/999')->assertNotFound();
     }
 
     #[Test]
     public function show_by_slug_like_lookups_can_reuse_the_resource(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $provider = Provider::where('slug', 'beta')->firstOrFail();
-        $data = (new ResourceObject($provider))->resolve(request());
+        $author = Author::where('slug', 'beta')->firstOrFail();
+        $data = (new ResourceObject($author))->resolve(request());
 
-        $this->assertSame(['id' => '2', 'type' => 'providers'], array_intersect_key($data['data'], ['id' => 1, 'type' => 1]));
+        $this->assertSame(['id' => '2', 'type' => 'authors'], array_intersect_key($data['data'], ['id' => 1, 'type' => 1]));
     }
 
     #[Test]
     public function append_and_filters_still_work(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
-        $response = $this->getJson('/api/v2/offers?append=label&filter[provider.slug]=beta&page[size]=100')->assertOk();
+        $response = $this->getJson('/api/v2/posts?append=label&filter[author.slug]=beta&page[size]=100')->assertOk();
 
         $this->assertCount(4, $response->json('data'));
-        $this->assertSame('OFFER 1-0', $response->json('data.0.attributes.label'));
+        $this->assertSame('POST 1-0', $response->json('data.0.attributes.label'));
     }
 
     #[Test]
     public function it_paginates_and_fires_after_index(): void
     {
-        $this->seedOffers();
+        $this->seedPosts();
 
         Event::listen(AfterIndex::class, function (AfterIndex $event) {
             $this->assertInstanceOf(CompoundDocument::class, $event->collection);
             $event->collection->additional(['meta' => ['resource' => $event->resource]]);
         });
 
-        $response = $this->getJson('/api/v2/offers?page[size]=3&page[number]=2')->assertOk();
+        $response = $this->getJson('/api/v2/posts?page[size]=3&page[number]=2')->assertOk();
 
         $this->assertCount(3, $response->json('data'));
         $this->assertSame('4', $response->json('data.0.id'));
         $this->assertSame(10, $response->json('meta.total'));
         $this->assertSame(2, $response->json('meta.current_page'));
-        $this->assertSame('offers', $response->json('meta.resource'));
+        $this->assertSame('posts', $response->json('meta.resource'));
         $this->assertStringContainsString('page%5Bnumber%5D=3', $response->json('links.next'));
     }
 }

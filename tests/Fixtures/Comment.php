@@ -5,11 +5,11 @@ namespace SnowDigital\JsonApi\Tests\Fixtures;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class Rating extends Model
+class Comment extends Model
 {
     protected $guarded = [];
 
-    public function rateable(): MorphTo
+    public function commentable(): MorphTo
     {
         return $this->morphTo();
     }

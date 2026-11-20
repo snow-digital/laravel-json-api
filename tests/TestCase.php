@@ -10,13 +10,13 @@ use Orchestra\Testbench\TestCase as Orchestra;
 use SnowDigital\JsonApi\ApiRegister;
 use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\JsonApiServiceProvider;
-use SnowDigital\JsonApi\Tests\Fixtures\EntryInternet;
-use SnowDigital\JsonApi\Tests\Fixtures\EntryMobile;
-use SnowDigital\JsonApi\Tests\Fixtures\Offer;
-use SnowDigital\JsonApi\Tests\Fixtures\OfferQueryBuilder;
-use SnowDigital\JsonApi\Tests\Fixtures\Provider;
-use SnowDigital\JsonApi\Tests\Fixtures\ProviderQueryBuilder;
-use SnowDigital\JsonApi\Tests\Fixtures\RatingQueryBuilder;
+use SnowDigital\JsonApi\Tests\Fixtures\Article;
+use SnowDigital\JsonApi\Tests\Fixtures\Video;
+use SnowDigital\JsonApi\Tests\Fixtures\Post;
+use SnowDigital\JsonApi\Tests\Fixtures\PostQueryBuilder;
+use SnowDigital\JsonApi\Tests\Fixtures\Author;
+use SnowDigital\JsonApi\Tests\Fixtures\AuthorQueryBuilder;
+use SnowDigital\JsonApi\Tests\Fixtures\CommentQueryBuilder;
 use SnowDigital\JsonApi\Resources\ResourceRelationships;
 use SnowDigital\JsonApi\Tests\Fixtures\ResourceObjectController;
 use Spatie\JsonApiPaginate\JsonApiPaginateServiceProvider;
@@ -36,7 +36,7 @@ abstract class TestCase extends Orchestra
         ApiRegister::$resources = [];
         $this->flushTypes();
         Relation::morphMap([], false);
-        ProviderQueryBuilder::$constructed = 0;
+        AuthorQueryBuilder::$constructed = 0;
 
         parent::tearDown();
     }
@@ -64,17 +64,17 @@ abstract class TestCase extends Orchestra
         $app['config']->set('query-builder.disable_invalid_includes_query_exception', true);
 
         JsonApi::setResources([
-            'offers' => [OfferQueryBuilder::class, ['browse', 'show']],
-            'providers' => [ProviderQueryBuilder::class, ['browse', 'show']],
-            'ratings' => RatingQueryBuilder::class,
-            'mobiles' => EntryMobile::class,
+            'posts' => [PostQueryBuilder::class, ['browse', 'show']],
+            'authors' => [AuthorQueryBuilder::class, ['browse', 'show']],
+            'comments' => CommentQueryBuilder::class,
+            'videos' => Video::class,
         ]);
 
         Relation::morphMap([
-            'offers.entry-mobile' => EntryMobile::class,
-            'offers.entry-internet' => EntryInternet::class,
-            'offers.offer' => Offer::class,
-            'providers.provider' => Provider::class,
+            'posts.content-video' => Video::class,
+            'posts.content-article' => Article::class,
+            'posts.post' => Post::class,
+            'authors.author' => Author::class,
         ]);
     }
 
@@ -90,7 +90,7 @@ abstract class TestCase extends Orchestra
 
     protected function createTables(): void
     {
-        DatabaseSchema::create('providers', function (Blueprint $table) {
+        DatabaseSchema::create('authors', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('slug');
@@ -98,32 +98,32 @@ abstract class TestCase extends Orchestra
             $table->timestamps();
         });
 
-        DatabaseSchema::create('offers', function (Blueprint $table) {
+        DatabaseSchema::create('posts', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('type')->default('mobile');
-            $table->foreignId('provider_id')->nullable();
-            $table->nullableMorphs('entry');
-            $table->foreignId('duplicating_id')->nullable();
+            $table->string('type')->default('article');
+            $table->foreignId('author_id')->nullable();
+            $table->nullableMorphs('content');
+            $table->foreignId('original_id')->nullable();
             $table->string('secret')->nullable();
             $table->timestamps();
         });
 
-        DatabaseSchema::create('entry_mobiles', function (Blueprint $table) {
+        DatabaseSchema::create('videos', function (Blueprint $table) {
             $table->id();
-            $table->integer('data_gb');
+            $table->integer('seconds');
             $table->timestamps();
         });
 
-        DatabaseSchema::create('entry_internets', function (Blueprint $table) {
+        DatabaseSchema::create('articles', function (Blueprint $table) {
             $table->id();
-            $table->integer('speed');
+            $table->integer('words');
             $table->timestamps();
         });
 
-        DatabaseSchema::create('ratings', function (Blueprint $table) {
+        DatabaseSchema::create('comments', function (Blueprint $table) {
             $table->id();
-            $table->morphs('rateable');
+            $table->morphs('commentable');
             $table->integer('score');
             $table->timestamps();
         });

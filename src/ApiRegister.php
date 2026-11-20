@@ -106,7 +106,7 @@ class ApiRegister
     }
 
     /**
-     * Map models to the key they are served under, e.g. [Offer::class => 'offers'], for resource objects.
+     * Map models to the key they are served under, e.g. [Post::class => 'posts'], for resource objects.
      *
      * Needed for models registered through a query builder: the builder's model is only
      * known once it is constructed, and constructing one has side effects.
@@ -137,7 +137,7 @@ class ApiRegister
         $alias = Relation::getMorphAlias($class);
 
         if ($alias !== $class) {
-            // Morph aliases like `offers.entry-mobile` use characters member names may not.
+            // Morph aliases like `posts.content-video` use characters member names may not.
             return trim(preg_replace('/[^a-zA-Z0-9_-]+/', '-', $alias), '-_');
         }
 

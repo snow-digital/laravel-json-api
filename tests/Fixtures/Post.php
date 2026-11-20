@@ -7,30 +7,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
-class Offer extends Model
+class Post extends Model
 {
     protected $guarded = [];
 
     protected $hidden = ['secret'];
 
-    public function provider(): BelongsTo
+    public function author(): BelongsTo
     {
-        return $this->belongsTo(Provider::class);
+        return $this->belongsTo(Author::class);
     }
 
     /**
-     * Same shape as telecom's Offer::entry(): a belongsTo once the type is known.
+     * A belongsTo once the type is known, a morphTo otherwise.
      */
-    public function entry(): BelongsTo|MorphTo
+    public function content(): BelongsTo|MorphTo
     {
-        return $this->entry_type
-            ? $this->belongsTo(Relation::getMorphedModel($this->entry_type) ?? $this->entry_type, 'entry_id')
+        return $this->content_type
+            ? $this->belongsTo(Relation::getMorphedModel($this->content_type) ?? $this->content_type, 'content_id')
             : $this->morphTo();
     }
 
-    public function duplicating(): BelongsTo
+    public function original(): BelongsTo
     {
-        return $this->belongsTo(Offer::class, 'duplicating_id');
+        return $this->belongsTo(Post::class, 'original_id');
     }
 
     public function getLabelAttribute(): string
