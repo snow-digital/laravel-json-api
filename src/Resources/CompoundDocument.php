@@ -13,6 +13,13 @@ class CompoundDocument extends AnonymousResourceCollection
     use KeepsPrimaryDataOutOfIncluded;
 
     /**
+     * Set by the constructor; the default is what Scramble documents.
+     *
+     * @var class-string<ResourceObject>
+     */
+    public $collects = ResourceObject::class;
+
+    /**
      * @param  mixed  $resource
      * @param  class-string<ResourceObject>  $collects
      */

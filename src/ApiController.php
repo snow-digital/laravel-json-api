@@ -10,6 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\AbstractPaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Route;
 use SnowDigital\JsonApi\Events\AfterIndex;
 use SnowDigital\JsonApi\Facades\JsonApi;
@@ -26,7 +27,8 @@ class ApiController
 {
     /**
      * The resource a model is serialized with. A `ResourceObject` (with a `CompoundDocument`)
-     * serves spec-shaped documents; see `usesResourceObjects()`.
+     * serves spec-shaped documents; see `usesResourceObjects()`. Scramble documents `index` and
+     * `show` from their phpdoc `@return`, so a subclass serving other classes narrows those.
      *
      * @var class-string<JsonResource>
      */
@@ -60,9 +62,14 @@ class ApiController
         return $this->{$method}(...array_values($parameters));
     }
 
+    /**
+     * @return LengthAwarePaginator<JsonApiResource>
+     *
+     * @phpstan-return ResourceCollection
+     */
     public function index(): ResourceCollection
     {
-        $this->ensureAction('browse');
+        abort_if($this->only && ! in_array('browse', $this->only), 404);
 
         $builder = $this->newQueryBuilder();
         $paginator = $builder->jsonPaginate();
@@ -80,9 +87,14 @@ class ApiController
         return $collection;
     }
 
+    /**
+     * @return JsonApiResource
+     *
+     * @phpstan-return JsonResource
+     */
     public function show(string $id): JsonResource
     {
-        $this->ensureAction('show');
+        abort_if($this->only && ! in_array('show', $this->only), 404);
 
         $builder = $this->newQueryBuilder();
         /** @var Model $entry */
@@ -99,21 +111,21 @@ class ApiController
 
     public function post(Request $request): JsonResource
     {
-        $this->ensureAction('post');
+        abort_if($this->only && ! in_array('post', $this->only), 404);
 
         return $this->upsert($request);
     }
 
     public function patch(Request $request, string $id): JsonResource
     {
-        $this->ensureAction('patch');
+        abort_if($this->only && ! in_array('patch', $this->only), 404);
 
         return $this->upsert($request, $id);
     }
 
     public function delete(string $id): Response
     {
-        $this->ensureAction('delete');
+        abort_if($this->only && ! in_array('delete', $this->only), 404);
 
         /** @var Model|QueryBuilder $resource */
         $resource = new $this->resource();
@@ -133,7 +145,7 @@ class ApiController
 
     public function restore(string $id): Response
     {
-        $this->ensureAction('restore');
+        abort_if($this->only && ! in_array('restore', $this->only), 404);
 
         /** @var Model|QueryBuilder $resource */
         $resource = new $this->resource();
@@ -188,6 +200,9 @@ class ApiController
         $route->forgetParameter('resource');
     }
 
+    /**
+     * For custom actions. The built-in ones keep the check inline, where Scramble documents the 404.
+     */
     protected function ensureAction(string $action): void
     {
         abort_if($this->only && ! in_array($action, $this->only), 404);

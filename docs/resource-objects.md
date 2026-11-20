@@ -29,6 +29,8 @@ The controller serializes with `$resourceClass` and `$collectionClass`, which de
 `JsonApiResource` and `JsonApiCollection`. Extend it to serve resource objects:
 
 ```php
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 use SnowDigital\JsonApi\ApiController;
 use SnowDigital\JsonApi\Resources\CompoundDocument;
 use SnowDigital\JsonApi\Resources\ResourceObject;
@@ -38,8 +40,31 @@ class ResourceObjectController extends ApiController
     protected string $resourceClass = ResourceObject::class;
 
     protected string $collectionClass = CompoundDocument::class;
+
+    /**
+     * @return CompoundDocument
+     *
+     * @phpstan-return ResourceCollection
+     */
+    public function index(): ResourceCollection
+    {
+        return parent::index();
+    }
+
+    /**
+     * @return ResourceObject
+     *
+     * @phpstan-return JsonResource
+     */
+    public function show(string $id): JsonResource
+    {
+        return parent::show($id);
+    }
 }
 ```
+
+The two overrides only change the phpdoc: Scramble documents a response from the action's `@return`,
+and the parent's says `JsonApiResource`. `@phpstan-return` keeps PHPStan on the native types.
 
 Resources are registered as usual (`JsonApi::setResources()`, with `[class, only]`). Declare the
 routes, for example to serve them as a second API version:
@@ -66,7 +91,8 @@ When the resource class is a `ResourceObject` (`usesResourceObjects()`), the con
 - remembers the type it serves for its model;
 - keeps only the include paths the query builder allows (see [Includes](#includes)).
 
-For a custom read (e.g. by slug), extend the controller and reuse its steps: `ensureAction('show')`,
+For a custom read (e.g. by slug), extend the controller and reuse its steps: `ensureAction('show')`
+(the built-in actions keep that check inline, where Scramble sees the 404),
 `newQueryBuilder()`, `afterQuery($builder)`, `newResource($entry)`. The resource is already
 resolved from the route's `resource` parameter (or default).
 
