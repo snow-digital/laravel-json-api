@@ -41,3 +41,5 @@ class UserQueryBuilder extends DefaultQueryBuilder
 
 JsonApi::setResource('users', UserQueryBuilder::class);
 ```
+
+Serving spec-shaped JSON:API documents (relationships, `included`): see [resource-objects.md](resource-objects.md).

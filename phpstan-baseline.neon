@@ -1,16 +1,19 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Call to an undefined method Illuminate\\\\Database\\\\Eloquent\\\\Model\\:\\:withTrashed\\(\\)\\.$#"
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:withTrashed\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: src/ApiController.php
 
 		-
-			message: "#^Call to an undefined method SnowDigital\\\\JsonApi\\\\QueryBuilder\\\\DefaultQueryBuilder\\:\\:jsonPaginate\\(\\)\\.$#"
+			message: '#^Call to an undefined method Dedoc\\Scramble\\Support\\Generator\\Types\\Type\:\:getProperty\(\)\.$#'
+			identifier: method.notFound
 			count: 1
-			path: src/ApiController.php
+			path: src/Docs/QueryBuilderToSchema.php
 
 		-
-			message: "#^Call to an undefined method Spatie\\\\QueryBuilder\\\\QueryBuilder\\:\\:jsonPaginate\\(\\)\\.$#"
+			message: '#^Parameter \#1 \$reference of method Dedoc\\Scramble\\Support\\Generator\\Components\:\:get\(\) expects Dedoc\\Scramble\\Support\\Generator\\Reference, Dedoc\\Scramble\\Support\\Generator\\Types\\Type given\.$#'
+			identifier: argument.type
 			count: 1
-			path: src/ApiController.php
+			path: src/Docs/QueryBuilderToSchema.php
