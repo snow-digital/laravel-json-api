@@ -25,13 +25,7 @@ use Spatie\QueryBuilder\QueryBuilderRequest;
 
 class ApiController
 {
-    /**
-     * The resource a model is serialized with. A `ResourceObject` (with a `CompoundDocument`)
-     * serves spec-shaped documents; see `usesResourceObjects()`. Scramble documents `index` and
-     * `show` from their phpdoc `@return`, so a subclass serving other classes narrows those.
-     *
-     * @var class-string<JsonResource>
-     */
+    /** @var class-string<JsonResource> */
     protected string $resourceClass = JsonApiResource::class;
 
     /** @var class-string<ResourceCollection> */
@@ -48,10 +42,7 @@ class ApiController
         $this->resolveResource($route);
     }
 
-    /**
-     * A route keeps its controller instance, so the constructor only runs for its first request:
-     * resolve the resource again whenever the route still carries it.
-     */
+    /** The route keeps its controller instance, so the resource is resolved per request. */
     public function callAction(string $method, array $parameters): mixed
     {
         if (array_key_exists('resource', $parameters)) {
@@ -200,19 +191,12 @@ class ApiController
         $route->forgetParameter('resource');
     }
 
-    /**
-     * For custom actions. The built-in ones keep the check inline, where Scramble documents the 404.
-     */
+    /** Built-in actions keep this check inline so Scramble documents their 404. */
     protected function ensureAction(string $action): void
     {
         abort_if($this->only && ! in_array($action, $this->only), 404);
     }
 
-    /**
-     * The one switch between the two output formats. Resource objects need what attributes-only
-     * resources do not: sparse fieldsets left to the serializer, the served type remembered,
-     * and includes limited to what the query builder loaded.
-     */
     protected function usesResourceObjects(): bool
     {
         return is_a($this->resourceClass, ResourceObject::class, true);
@@ -269,11 +253,7 @@ class ApiController
             : new $collection($paginator);
     }
 
-    /**
-     * Spatie eager loads only the allowed include paths and ignores the others (when invalid
-     * includes don't throw), but a resource object reads `include` itself and would lazy load
-     * the rest row by row. Keep only the paths Spatie loaded.
-     */
+    /** A resource object reads `include` itself and would lazy load per row what Spatie did not load. */
     protected function restrictIncludes(Request $request, QueryBuilder $builder): void
     {
         $parameter = config('query-builder.parameters.include', 'include');
@@ -298,9 +278,7 @@ class ApiController
     }
 
     /**
-     * Spatie would turn `fields[type]` into a SQL select per table: without the primary and
-     * foreign keys, eager loads and relationship identifiers break, and its validation rejects
-     * fields of related types. For resource objects only the serializer applies sparse fieldsets.
+     * Spatie's per-table select would drop the keys that eager loads and identifiers need.
      *
      * @template T
      *

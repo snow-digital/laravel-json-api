@@ -8,8 +8,7 @@ use SnowDigital\JsonApi\Resources\ResourceObject;
 trait KeepsPrimaryDataOutOfIncluded
 {
     /**
-     * A document holds one object per `type:id`: Laravel only dedupes `included` against itself,
-     * so a row reached again through a relation (e.g. `comments.post`) would be repeated.
+     * Laravel dedupes `included` against itself, not against `data`.
      *
      * @param  array<string, mixed>  $with
      * @param  array<int, ResourceObject>  $primary

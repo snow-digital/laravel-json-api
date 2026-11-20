@@ -32,7 +32,6 @@ class ApiControllerTest extends TestCase
     #[Test]
     public function attributes_resources_nest_relations_inside_attributes(): void
     {
-        // The default resource classes: what /api/v1 has always served.
         $author = Author::create(['name' => 'Alpha', 'slug' => 'alpha']);
         $content = Video::create(['seconds' => 5]);
         Post::create(['name' => 'one', 'author_id' => $author->id, 'content_type' => 'posts.content-video', 'content_id' => $content->id]);
@@ -196,7 +195,7 @@ class ApiControllerTest extends TestCase
         $this->assertSame([['videos', '1']], collect($response->json('included'))->map(fn ($i) => [$i['type'], $i['id']])->all());
         $this->assertArrayNotHasKey('relationships', $response->json('included.0'));
 
-        // Not an allowed include path of posts: dropped whole, as Spatie loaded nothing for it.
+        // Not an allowed include path: dropped.
         $response = $this->getJson('/api/v2/posts?include=content.post&page[size]=1')->assertOk();
 
         $this->assertArrayNotHasKey('included', $response->json());

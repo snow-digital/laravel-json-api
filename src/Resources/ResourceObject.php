@@ -14,11 +14,6 @@ use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\Resources\Concerns\KeepsPrimaryDataOutOfIncluded;
 
 /**
- * A model as a JSON:API resource object: relations are relationships, never attributes.
- *
- * Every declared belongsTo always carries its identifier, read from the foreign key
- * without loading anything; other relationships appear only when included.
- *
  * @property-read Model $resource
  */
 class ResourceObject extends BaseJsonApiResource
@@ -48,8 +43,7 @@ class ResourceObject extends BaseJsonApiResource
         }
 
         return Arr::except($this->resource->attributesToArray(), [
-            // `id` and `type` share the resource object's namespace. A model attribute named
-            // `type` is kept rather than silently dropped, although the spec reserves the name.
+            // A `type` attribute is kept, although the spec reserves the name.
             'id',
             ...$this->foreignKeys(),
         ]);
@@ -75,8 +69,7 @@ class ResourceObject extends BaseJsonApiResource
     }
 
     /**
-     * Included resources follow the requested include paths only. Laravel would also include
-     * whatever is already loaded on them, e.g. a relation eager loaded through a model's `$with`.
+     * Laravel would also include relations already loaded, e.g. through a model's `$with`.
      *
      * @return $this
      */
@@ -95,8 +88,6 @@ class ResourceObject extends BaseJsonApiResource
     }
 
     /**
-     * The resource class used for related (and included) models.
-     *
      * @return class-string<BaseJsonApiResource>
      */
     protected function relatedResourceClass(string $relation): string
@@ -167,8 +158,6 @@ class ResourceObject extends BaseJsonApiResource
     }
 
     /**
-     * The `{type, id}` a belongsTo points at, from the foreign key alone.
-     *
      * @param  BelongsTo<Model, Model>  $relation
      * @return array{id: string, type: string}|null|false null for an empty foreign key, false when unknowable without a query
      */

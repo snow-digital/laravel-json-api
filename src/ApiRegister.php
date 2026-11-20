@@ -106,11 +106,6 @@ class ApiRegister
     }
 
     /**
-     * Map models to the key they are served under, e.g. [Post::class => 'posts'], for resource objects.
-     *
-     * Needed for models registered through a query builder: the builder's model is only
-     * known once it is constructed, and constructing one has side effects.
-     *
      * @param  array<class-string<Model>, string>  $types
      */
     public function types(array $types): static
@@ -121,9 +116,6 @@ class ApiRegister
     }
 
     /**
-     * The JSON:API `type` of a model: its mapped key, the key its class is registered under,
-     * its morph alias as a valid member name, or its class basename in snake case, plural.
-     *
      * @param  Model|class-string<Model>  $model
      */
     public function type(Model|string $model): string
@@ -137,7 +129,7 @@ class ApiRegister
         $alias = Relation::getMorphAlias($class);
 
         if ($alias !== $class) {
-            // Morph aliases like `posts.content-video` use characters member names may not.
+            // Member names may not contain characters such as `.`.
             return trim(preg_replace('/[^a-zA-Z0-9_-]+/', '-', $alias), '-_');
         }
 
@@ -145,8 +137,6 @@ class ApiRegister
     }
 
     /**
-     * Remember the key a model is being served under, unless it already has one.
-     *
      * @param  class-string<Model>  $class
      */
     public function rememberType(string $class, string $key): void

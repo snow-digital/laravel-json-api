@@ -10,9 +10,6 @@ use SnowDigital\JsonApi\ApiRegister;
 use SnowDigital\JsonApi\Facades\JsonApi;
 use SnowDigital\JsonApi\QueryBuilder\DefaultQueryBuilder;
 
-/**
- * The relationships a resource object declares: its type's query builder includes.
- */
 class ResourceRelationships
 {
     /** @var array<string, list<string>> keyed by "model class@type" */
@@ -22,8 +19,6 @@ class ResourceRelationships
     protected static array $foreignKeys = [];
 
     /**
-     * Use the includes of the builder being served, for the type it is served as.
-     *
      * @param  array<int, mixed>  $includes
      */
     public static function remember(Model $model, string $type, array $includes): void
@@ -34,8 +29,6 @@ class ResourceRelationships
     }
 
     /**
-     * Top-level relationship names (`posts.author` declares `posts`).
-     *
      * @return list<string>
      */
     public static function declared(Model $model): array
@@ -44,8 +37,6 @@ class ResourceRelationships
     }
 
     /**
-     * Declared relationships that are a belongsTo (or morphTo) on this model class.
-     *
      * @return list<string>
      */
     public static function belongsTo(Model $model): array
@@ -54,8 +45,6 @@ class ResourceRelationships
     }
 
     /**
-     * Columns that only exist to point at a declared belongsTo, and so are not attributes.
-     *
      * @return list<string>
      */
     public static function foreignKeys(Model $model): array
@@ -95,7 +84,7 @@ class ResourceRelationships
             return static::$foreignKeys[$key];
         }
 
-        // A blank instance gives one answer per class, so every row of a type has the same attributes.
+        // One answer per class, so every row of a type has the same attributes.
         $blank = $model->newInstance();
         $belongsTo = [];
         $foreignKeys = [];
@@ -131,8 +120,7 @@ class ResourceRelationships
             return [];
         }
 
-        // Builder constructors read and validate the current request (and may have side
-        // effects), so only the includes are asked for, from an instance never constructed.
+        // Constructing a builder reads the request and may have side effects.
         /** @var DefaultQueryBuilder $builder */
         $builder = (new \ReflectionClass($resource))->newInstanceWithoutConstructor();
         $builder->resource = $model->newInstance();

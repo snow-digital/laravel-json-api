@@ -5,15 +5,12 @@ namespace SnowDigital\JsonApi\Resources;
 use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection;
 use SnowDigital\JsonApi\Resources\Concerns\KeepsPrimaryDataOutOfIncluded;
 
-/**
- * A page of resource objects; `included` is deduplicated across the whole page.
- */
 class CompoundDocument extends AnonymousResourceCollection
 {
     use KeepsPrimaryDataOutOfIncluded;
 
     /**
-     * Set by the constructor; the default is what Scramble documents.
+     * The constructor sets the real one; this default is what Scramble documents.
      *
      * @var class-string<ResourceObject>
      */
