@@ -1,6 +1,6 @@
 <?php
 
-namespace SnowDigital\JsonApi\Tests\V2;
+namespace SnowDigital\JsonApi\Tests;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -12,9 +12,9 @@ use SnowDigital\JsonApi\Tests\Fixtures\Offer;
 use SnowDigital\JsonApi\Tests\Fixtures\Provider;
 use SnowDigital\JsonApi\Tests\Fixtures\ProviderQueryBuilder;
 use SnowDigital\JsonApi\Tests\Fixtures\Rating;
-use SnowDigital\JsonApi\Tests\TestCase;
-use SnowDigital\JsonApi\V2\JsonApiCollection;
-use SnowDigital\JsonApi\V2\Schema;
+use SnowDigital\JsonApi\Facades\JsonApi;
+use SnowDigital\JsonApi\Resources\CompoundDocument;
+use SnowDigital\JsonApi\Resources\ResourceObject;
 
 class ApiControllerTest extends TestCase
 {
@@ -22,11 +22,50 @@ class ApiControllerTest extends TestCase
     {
         parent::setUp();
 
-        Schema::types([
+        JsonApi::types([
             Offer::class => 'offers',
             Provider::class => 'providers',
             Rating::class => 'ratings',
         ]);
+    }
+
+    #[Test]
+    public function attributes_resources_nest_relations_inside_attributes(): void
+    {
+        // The default resource classes: what /api/v1 has always served.
+        $provider = Provider::create(['name' => 'Alpha', 'slug' => 'alpha']);
+        $entry = EntryMobile::create(['data_gb' => 5]);
+        Offer::create(['name' => 'one', 'provider_id' => $provider->id, 'entry_type' => 'offers.entry-mobile', 'entry_id' => $entry->id]);
+
+        $response = $this->getJson('/api/v1/offers?include=provider,entry')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/json');
+
+        $this->assertSame(['id', 'attributes'], array_keys($response->json('data.0')));
+        $this->assertSame(1, $response->json('data.0.attributes.id'));
+        $this->assertSame(1, $response->json('data.0.attributes.provider_id'));
+        $this->assertSame('Alpha', $response->json('data.0.attributes.provider.name'));
+        $this->assertSame(5, $response->json('data.0.attributes.entry.data_gb'));
+        $this->assertArrayNotHasKey('included', $response->json());
+
+        $this->getJson('/api/v1/offers/1')
+            ->assertOk()
+            ->assertJsonPath('data.id', '1')
+            ->assertJsonPath('data.attributes.name', 'one');
+    }
+
+    #[Test]
+    public function a_reused_controller_serves_the_resource_of_each_request(): void
+    {
+        Provider::create(['name' => 'Alpha', 'slug' => 'alpha']);
+        Offer::create(['name' => 'one']);
+
+        // One `{resource}` route keeps one controller instance across requests.
+        $this->getJson('/api/v1/offers')->assertOk()->assertJsonPath('data.0.attributes.name', 'one');
+        $this->getJson('/api/v1/providers')->assertOk()->assertJsonPath('data.0.attributes.name', 'Alpha');
+        $this->getJson('/api/v1/offers/1')->assertOk()->assertJsonPath('data.attributes.name', 'one');
+        $this->getJson('/api/v2/providers/1')->assertOk()->assertJsonPath('data.type', 'providers');
+        $this->getJson('/api/v2/offers/1')->assertOk()->assertJsonPath('data.type', 'offers');
     }
 
     /**
@@ -184,7 +223,7 @@ class ApiControllerTest extends TestCase
     /** The builders don't allow `entry.parent`, so serialize directly, as a custom endpoint would. */
     protected function resourceWithParentInclude(): \Illuminate\Testing\TestResponse
     {
-        \Illuminate\Support\Facades\Route::get('direct', fn () => \SnowDigital\JsonApi\V2\JsonApiResource::collection(Offer::with('entry')->paginate(3)));
+        \Illuminate\Support\Facades\Route::get('direct', fn () => ResourceObject::collection(Offer::with('entry')->paginate(3)));
 
         return $this->getJson('/direct?include=entry.parent')->assertOk();
     }
@@ -288,13 +327,13 @@ class ApiControllerTest extends TestCase
     public function only_the_requested_builder_is_constructed(): void
     {
         $this->seedOffers();
-        Schema::flush();
+        $this->flushTypes();
 
         $response = $this->getJson('/api/v2/offers?include=provider')->assertOk();
 
         $this->assertSame(0, ProviderQueryBuilder::$constructed);
         $this->assertSame('offers', $response->json('data.0.type'), 'remembered from the route key');
-        $this->assertSame('providers-provider', $response->json('included.0.type'), 'a builder-registered model needs Schema::types()');
+        $this->assertSame('providers-provider', $response->json('included.0.type'), 'a builder-registered model needs JsonApi::types()');
     }
 
     #[Test]
@@ -320,7 +359,7 @@ class ApiControllerTest extends TestCase
         $this->seedOffers();
 
         $provider = Provider::where('slug', 'beta')->firstOrFail();
-        $data = (new \SnowDigital\JsonApi\V2\JsonApiResource($provider))->resolve(request());
+        $data = (new ResourceObject($provider))->resolve(request());
 
         $this->assertSame(['id' => '2', 'type' => 'providers'], array_intersect_key($data['data'], ['id' => 1, 'type' => 1]));
     }
@@ -342,7 +381,7 @@ class ApiControllerTest extends TestCase
         $this->seedOffers();
 
         Event::listen(AfterIndex::class, function (AfterIndex $event) {
-            $this->assertInstanceOf(JsonApiCollection::class, $event->collection);
+            $this->assertInstanceOf(CompoundDocument::class, $event->collection);
             $event->collection->additional(['meta' => ['resource' => $event->resource]]);
         });
 

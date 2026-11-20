@@ -1,23 +1,21 @@
 <?php
 
-namespace SnowDigital\JsonApi\V2;
+namespace SnowDigital\JsonApi\Resources\Concerns;
 
 use Illuminate\Http\Resources\JsonApi\JsonApiRequest;
+use SnowDigital\JsonApi\Resources\ResourceObject;
 
-/**
- * @internal
- */
-class PrimaryData
+trait KeepsPrimaryDataOutOfIncluded
 {
     /**
      * A document holds one object per `type:id`: Laravel only dedupes `included` against itself,
      * so a row reached again through a relation (e.g. `entry.parent`) would be repeated.
      *
      * @param  array<string, mixed>  $with
-     * @param  array<int, JsonApiResource>  $primary
+     * @param  array<int, ResourceObject>  $primary
      * @return array<string, mixed>
      */
-    public static function withoutPrimaryInIncluded(array $with, array $primary, JsonApiRequest $request): array
+    protected function withoutPrimaryData(array $with, array $primary, JsonApiRequest $request): array
     {
         if (empty($with['included'])) {
             return $with;

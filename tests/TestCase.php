@@ -17,8 +17,8 @@ use SnowDigital\JsonApi\Tests\Fixtures\OfferQueryBuilder;
 use SnowDigital\JsonApi\Tests\Fixtures\Provider;
 use SnowDigital\JsonApi\Tests\Fixtures\ProviderQueryBuilder;
 use SnowDigital\JsonApi\Tests\Fixtures\RatingQueryBuilder;
-use SnowDigital\JsonApi\V2\ApiController;
-use SnowDigital\JsonApi\V2\Schema;
+use SnowDigital\JsonApi\Resources\ResourceRelationships;
+use SnowDigital\JsonApi\Tests\Fixtures\ResourceObjectController;
 use Spatie\JsonApiPaginate\JsonApiPaginateServiceProvider;
 use Spatie\QueryBuilder\QueryBuilderServiceProvider;
 
@@ -34,11 +34,17 @@ abstract class TestCase extends Orchestra
     protected function tearDown(): void
     {
         ApiRegister::$resources = [];
-        Schema::flush();
+        $this->flushTypes();
         Relation::morphMap([], false);
         ProviderQueryBuilder::$constructed = 0;
 
         parent::tearDown();
+    }
+
+    protected function flushTypes(): void
+    {
+        ApiRegister::$types = [];
+        ResourceRelationships::flush();
     }
 
     protected function getPackageProviders($app): array
@@ -77,8 +83,8 @@ abstract class TestCase extends Orchestra
         Route::prefix('api/v2')
             ->name('v2.')
             ->group(function () {
-                Route::get('{resource}', [ApiController::class, 'index'])->name('browse');
-                Route::get('{resource}/{id}', [ApiController::class, 'show'])->name('show');
+                Route::get('{resource}', [ResourceObjectController::class, 'index'])->name('browse');
+                Route::get('{resource}/{id}', [ResourceObjectController::class, 'show'])->name('show');
             });
     }
 

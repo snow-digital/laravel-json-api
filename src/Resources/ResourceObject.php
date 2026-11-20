@@ -1,6 +1,6 @@
 <?php
 
-namespace SnowDigital\JsonApi\V2;
+namespace SnowDigital\JsonApi\Resources;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\JsonApi\JsonApiRequest;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource as BaseJsonApiResource;
 use Illuminate\Support\Arr;
+use SnowDigital\JsonApi\Facades\JsonApi;
+use SnowDigital\JsonApi\Resources\Concerns\KeepsPrimaryDataOutOfIncluded;
 
 /**
  * A model as a JSON:API resource object: relations are relationships, never attributes.
@@ -19,8 +21,10 @@ use Illuminate\Support\Arr;
  *
  * @property-read Model $resource
  */
-class JsonApiResource extends BaseJsonApiResource
+class ResourceObject extends BaseJsonApiResource
 {
+    use KeepsPrimaryDataOutOfIncluded;
+
     /**
      * @var array<string, BelongsTo<Model, Model>>|null
      */
@@ -31,7 +35,7 @@ class JsonApiResource extends BaseJsonApiResource
      */
     public function toType(Request $request)
     {
-        return $this->resource instanceof Model ? Schema::type($this->resource) : null;
+        return $this->resource instanceof Model ? JsonApi::type($this->resource) : null;
     }
 
     /**
@@ -60,7 +64,7 @@ class JsonApiResource extends BaseJsonApiResource
         }
 
         $names = array_unique([
-            ...Schema::relationships($this->resource),
+            ...ResourceRelationships::declared($this->resource),
             ...array_keys($this->resource->getRelations()),
         ]);
 
@@ -86,7 +90,7 @@ class JsonApiResource extends BaseJsonApiResource
      */
     public function with($request)
     {
-        return PrimaryData::withoutPrimaryInIncluded(parent::with($request), [$this], $this->resolveJsonApiRequestFrom($request));
+        return $this->withoutPrimaryData(parent::with($request), [$this], $this->resolveJsonApiRequestFrom($request));
     }
 
     /**
@@ -104,10 +108,10 @@ class JsonApiResource extends BaseJsonApiResource
      */
     protected function foreignKeys(): array
     {
-        $columns = Schema::foreignKeys($this->resource);
+        $columns = ResourceRelationships::foreignKeys($this->resource);
 
         foreach ($this->belongsToRelations() as $relation) {
-            array_push($columns, ...Schema::relationColumns($relation));
+            array_push($columns, ...ResourceRelationships::columns($relation));
         }
 
         return $columns;
@@ -149,7 +153,7 @@ class JsonApiResource extends BaseJsonApiResource
 
         $relations = [];
 
-        foreach (Schema::belongsTo($this->resource) as $name) {
+        foreach (ResourceRelationships::belongsTo($this->resource) as $name) {
             // Asked per row: a relation may be a morphTo on one row and a belongsTo on another.
             $relation = $this->resource->{$name}();
 
@@ -173,7 +177,7 @@ class JsonApiResource extends BaseJsonApiResource
             $related = $this->resource->getRelation($name);
 
             return $related instanceof Model
-                ? ['id' => (string) $related->getKey(), 'type' => Schema::type($related)]
+                ? ['id' => (string) $related->getKey(), 'type' => JsonApi::type($related)]
                 : null;
         }
 
@@ -193,7 +197,7 @@ class JsonApiResource extends BaseJsonApiResource
                 return false;
             }
 
-            return ['id' => (string) $id, 'type' => Schema::type($class)];
+            return ['id' => (string) $id, 'type' => JsonApi::type($class)];
         }
 
         if (blank($id)) {
@@ -204,11 +208,11 @@ class JsonApiResource extends BaseJsonApiResource
             return false;
         }
 
-        return ['id' => (string) $id, 'type' => Schema::type($relation->getRelated())];
+        return ['id' => (string) $id, 'type' => JsonApi::type($relation->getRelated())];
     }
 
     protected static function newCollection($resource)
     {
-        return new JsonApiCollection($resource, static::class);
+        return new CompoundDocument($resource, static::class);
     }
 }

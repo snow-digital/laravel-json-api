@@ -3,13 +3,18 @@
 namespace SnowDigital\JsonApi;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class ApiRegister
 {
     public static array $resources = [];
+
+    /** @var array<class-string<Model>, string> */
+    public static array $types = [];
 
     public function resource(string $key): mixed
     {
@@ -98,5 +103,68 @@ class ApiRegister
     public function key(string $resource): string|int|false
     {
         return array_search($resource, static::$resources);
+    }
+
+    /**
+     * Map models to the key they are served under, e.g. [Offer::class => 'offers'], for resource objects.
+     *
+     * Needed for models registered through a query builder: the builder's model is only
+     * known once it is constructed, and constructing one has side effects.
+     *
+     * @param  array<class-string<Model>, string>  $types
+     */
+    public function types(array $types): static
+    {
+        static::$types = array_merge(static::$types, $types);
+
+        return $this;
+    }
+
+    /**
+     * The JSON:API `type` of a model: its mapped key, the key its class is registered under,
+     * its morph alias as a valid member name, or its class basename in snake case, plural.
+     *
+     * @param  Model|class-string<Model>  $model
+     */
+    public function type(Model|string $model): string
+    {
+        $class = is_string($model) ? $model : $model::class;
+
+        if ($type = static::$types[$class] ?? $this->registeredKey($class)) {
+            return $type;
+        }
+
+        $alias = Relation::getMorphAlias($class);
+
+        if ($alias !== $class) {
+            // Morph aliases like `offers.entry-mobile` use characters member names may not.
+            return trim(preg_replace('/[^a-zA-Z0-9_-]+/', '-', $alias), '-_');
+        }
+
+        return (string) Str::of(class_basename($class))->snake()->pluralStudly();
+    }
+
+    /**
+     * Remember the key a model is being served under, unless it already has one.
+     *
+     * @param  class-string<Model>  $class
+     */
+    public function rememberType(string $class, string $key): void
+    {
+        static::$types[$class] ??= $key;
+    }
+
+    /**
+     * @param  class-string<Model>  $class
+     */
+    protected function registeredKey(string $class): ?string
+    {
+        foreach (static::$resources as $key => $resource) {
+            if ((is_array($resource) ? $resource[0] : $resource) === $class) {
+                return static::$types[$class] = (string) $key;
+            }
+        }
+
+        return null;
     }
 }

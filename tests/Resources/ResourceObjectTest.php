@@ -1,6 +1,6 @@
 <?php
 
-namespace SnowDigital\JsonApi\Tests\V2;
+namespace SnowDigital\JsonApi\Tests\Resources;
 
 use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\Test;
@@ -8,15 +8,15 @@ use SnowDigital\JsonApi\Tests\Fixtures\Offer;
 use SnowDigital\JsonApi\Tests\Fixtures\OfferResultResource;
 use SnowDigital\JsonApi\Tests\Fixtures\Provider;
 use SnowDigital\JsonApi\Tests\TestCase;
-use SnowDigital\JsonApi\V2\JsonApiCollection;
-use SnowDigital\JsonApi\V2\Schema;
+use SnowDigital\JsonApi\Facades\JsonApi;
+use SnowDigital\JsonApi\Resources\CompoundDocument;
 
-class JsonApiResourceTest extends TestCase
+class ResourceObjectTest extends TestCase
 {
     #[Test]
     public function a_custom_resource_keeps_types_identifiers_and_dedup(): void
     {
-        Schema::types([Offer::class => 'offers', Provider::class => 'providers']);
+        JsonApi::types([Offer::class => 'offers', Provider::class => 'providers']);
 
         $provider = Provider::create(['name' => 'Alpha', 'slug' => 'alpha']);
         Offer::create(['name' => 'one', 'provider_id' => $provider->id]);
@@ -24,7 +24,7 @@ class JsonApiResourceTest extends TestCase
 
         Route::get('results', function () {
             $collection = OfferResultResource::collection(Offer::with('provider')->paginate(10));
-            $this->assertInstanceOf(JsonApiCollection::class, $collection);
+            $this->assertInstanceOf(CompoundDocument::class, $collection);
 
             return $collection;
         });
